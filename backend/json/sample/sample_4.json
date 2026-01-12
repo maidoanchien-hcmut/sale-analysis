@@ -1,0 +1,39 @@
+{
+    "messages": [
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-12T20:00:10Z",
+            "content": "Em bị mụn lưng dày đặc, chữa nhiều nơi không khỏi, nản quá shop ơi."
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-12T20:02:15Z",
+            "content": "Chào em, chị là Hạnh - O2 SKIN. Nghe em kể chị hiểu em đang rất lo lắng. Mụn lưng thường do nội tiết hoặc viêm nang lông, nếu chữa sai cách rất dễ tái phát. Em chụp giúp chị vùng lưng bị mụn (cam thường) để bác sĩ đánh giá mức độ viêm nhé?"
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-12T20:05:30Z",
+            "content": "[Hình ảnh]"
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-12T20:08:00Z",
+            "content": "Cảm ơn em. Tình trạng này là viêm nang lông cấp độ 3 rồi, nếu để lâu sẽ thành sẹo rỗ lốm đốm rất mất thẩm mỹ. Em phải ghé làm liệu trình 10 buổi Nano Skin ngay lập tức mới kịp. Chuyển khoản cọc 500k để chị giữ bác sĩ giỏi nhất cho em."
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-12T20:10:15Z",
+            "content": "Ủa sao nghe ghê vậy chị? Em là sinh viên tiền đâu mà làm 10 buổi liền. Em chỉ muốn khám mua thuốc thôi."
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-12T20:12:40Z",
+            "content": "Thuốc bôi không thấm vào đâu em ơi. Em không làm sớm sau này lưng nát bét đừng hối hận nhé. Bên chị đang giảm giá chốt ngay hôm nay mới kịp."
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-12T20:13:20Z",
+            "content": "Thôi cảm ơn, tư vấn kiểu hù dọa sợ quá."
+        }
+    ]
+}

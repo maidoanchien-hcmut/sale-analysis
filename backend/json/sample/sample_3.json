@@ -1,0 +1,29 @@
+{
+    "messages": [
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-11T14:15:20Z",
+            "content": "Tư vấn trị mụn."
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-11T14:16:05Z",
+            "content": "Chào bạn, đây là bảng giá dịch vụ bên mình:\n1. Khám da: 100k\n2. Lấy nhân mụn: 350k\n3. Chiếu ánh sáng: 150k\nBạn muốn làm dịch vụ nào?"
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-11T14:20:15Z",
+            "content": "Mình chưa biết làm gì, mặt đang nhiều mụn nên hỏi tư vấn thôi."
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-11T14:20:45Z",
+            "content": "Vậy bạn qua khám đi rồi bác sĩ chỉ định. Bên mình làm từ 8h-19h."
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-11T14:22:10Z",
+            "content": "Để mình xem lại đã."
+        }
+    ]
+}

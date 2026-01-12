@@ -1,0 +1,29 @@
+{
+    "messages": [
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-13T10:00:05Z",
+            "content": "Bên mình có trị sẹo rỗ không?"
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-13T10:02:10Z",
+            "content": "Dạ Admin chào bạn. Bên Shop có trị sẹo rỗ nha. Giá từ 2tr-4tr."
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-13T10:03:45Z",
+            "content": "Giá cao thế. Bên Spa X làm trọn gói cam kết có 1tr5 thôi."
+        },
+        {
+            "sender_name": "page",
+            "timestamp": "2026-02-13T10:05:30Z",
+            "content": "Bạn ơi đừng so sánh khập khiễng thế. Bên đó toàn kỹ thuật viên làm bậy bạ. Bạn ham rẻ thì qua đó mà làm, bên mình bác sĩ xịn nên giá đó là đúng rồi."
+        },
+        {
+            "sender_name": "customer",
+            "timestamp": "2026-02-13T10:06:50Z",
+            "content": "Ăn nói kiểu gì vậy? Thái độ lồi lõm quá. Bye."
+        }
+    ]
+}
