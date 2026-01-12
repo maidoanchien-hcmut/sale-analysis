@@ -19,15 +19,17 @@ import (
 )
 
 const (
-	Port       = ":8080"
-	DbPath     = "./sql/chat.db"
-	SchemaPath = "./sql/schema.sql"
-	PythonCmd  = "python"
+	Port = ":8080"
+)
 
-	ScriptSessionizer = "./script/sessionizer.py"
-	ScriptAnalyzer    = "./script/session_analyzer.py"
-
-	DirSample = "./json/sample"
+// configuration variables (computed at startup to support Windows, Linux, mac)
+var (
+	DbPath            string
+	SchemaPath        string
+	PythonCmd         string
+	ScriptSessionizer string
+	ScriptAnalyzer    string
+	DirSample         string
 )
 
 type InputJSON struct {
@@ -58,6 +60,7 @@ type AnalyzedSession struct {
 }
 
 func main() {
+	initConfig()
 	initDB()
 
 	os.MkdirAll(DirSample, 0755)
@@ -66,6 +69,77 @@ func main() {
 
 	fmt.Printf("Server running at http://localhost%s\n", Port)
 	log.Fatal(http.ListenAndServe(Port, nil))
+}
+
+// initConfig detects runtime paths and executables and allows overrides via env vars
+func initConfig() {
+	// Python command: prefer env override, otherwise try common names
+	if v := os.Getenv("PYTHON_CMD"); v != "" {
+		PythonCmd = v
+	} else {
+		for _, name := range []string{"python3", "python"} {
+			if p, err := exec.LookPath(name); err == nil {
+				PythonCmd = p
+				break
+			}
+		}
+		if PythonCmd == "" {
+			log.Fatal("python executable not found in PATH. Set PYTHON_CMD environment variable if needed.")
+		}
+	}
+
+	// Resolve script paths relative to the running executable and common locations
+	exePath, _ := os.Executable()
+	exeDir := filepath.Dir(exePath)
+	candidates := []string{
+		filepath.Join(exeDir, "script"),
+		filepath.Join(exeDir, "..", "script"),
+		"./script",
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "sessionizer.py")); err == nil {
+			ScriptSessionizer = filepath.Join(c, "sessionizer.py")
+			ScriptAnalyzer = filepath.Join(c, "session_analyzer.py")
+			break
+		}
+	}
+	if ScriptSessionizer == "" {
+		// fallback to relative paths
+		ScriptSessionizer = "./script/sessionizer.py"
+		ScriptAnalyzer = "./script/session_analyzer.py"
+	}
+
+	// Schema path: env override or common filenames
+	if v := os.Getenv("SCHEMA_PATH"); v != "" {
+		SchemaPath = v
+	} else {
+		if _, err := os.Stat("./sql/schema.sql"); err == nil {
+			SchemaPath = "./sql/schema.sql"
+		} else if _, err := os.Stat("./sql/db.sql"); err == nil {
+			SchemaPath = "./sql/db.sql"
+		} else if _, err := os.Stat(filepath.Join(exeDir, "..", "sql", "schema.sql")); err == nil {
+			SchemaPath = filepath.Join(exeDir, "..", "sql", "schema.sql")
+		} else {
+			SchemaPath = "./sql/schema.sql"
+		}
+	}
+
+	// DB path: env override or default
+	if v := os.Getenv("DB_PATH"); v != "" {
+		DbPath = v
+	} else {
+		DbPath = "./sql/chat.db"
+	}
+
+	// sample dir
+	if v := os.Getenv("SAMPLE_DIR"); v != "" {
+		DirSample = v
+	} else {
+		DirSample = "./json/sample"
+	}
+
+	log.Printf("Configuration: PythonCmd=%s, Sessionizer=%s, Analyzer=%s, Schema=%s, DB=%s, SampleDir=%s",
+		PythonCmd, ScriptSessionizer, ScriptAnalyzer, SchemaPath, DbPath, DirSample)
 }
 
 func handleProcess(w http.ResponseWriter, r *http.Request) {
