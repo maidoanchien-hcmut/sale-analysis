@@ -8,6 +8,7 @@ import argparse
 from pydantic import BaseModel, Field
 from typing import Literal, Optional
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
@@ -99,29 +100,54 @@ def analyze_single_session():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', nargs='?',
                         help="Path to sessionized JSON")
-    parser.add_argument('--output', help="Path to save analyzed JSON")
     args = parser.parse_args()
 
     input_path = args.input_file
-    output_path = args.output
+
+    if not input_path:
+        print("Please provide the path to a sessionized JSON file.", file=sys.stderr)
+        sys.exit(2)
+
+    if not os.path.exists(input_path):
+        print(f"Input file not found: {input_path}", file=sys.stderr)
+        sys.exit(1)
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.normpath(os.path.join(
+        script_dir, '..', 'json', 'analyzed'))
+    os.makedirs(output_dir, exist_ok=True)
+
+    base_name = os.path.basename(input_path)
+    name, ext = os.path.splitext(base_name)
+    if not ext:
+        ext = '.json'
+
+    candidate = f"{name}_analyzed{ext}"
+    output_path = os.path.join(output_dir, candidate)
+
+    if os.path.exists(output_path):
+        count = 0
+        while True:
+            candidate = f"{name}_analyzed_{count}{ext}"
+            candidate_path = os.path.join(output_dir, candidate)
+            if not os.path.exists(candidate_path):
+                output_path = candidate_path
+                break
+            count += 1
 
     api_key = os.getenv("GOOGLE_API_KEY", "your_api_key_here")
 
     if api_key == "your_api_key_here":
-        print("PLEASE SET YOUR GOOGLE_API_KEY IN THE .env FILE OR ENVIRONMENT VARIABLES.")
+        print("PLEASE SET YOUR GOOGLE_API_KEY IN THE .env FILE OR ENVIRONMENT VARIABLES.", file=sys.stderr)
 
     client = Client(api_key=api_key)
-
-    if not os.path.exists(input_path):
-        print(f"Input file not found: {input_path}")
-        return
 
     with open(input_path, 'r', encoding='utf-8') as f:
         try:
             sessions = json.load(f)
         except json.JSONDecodeError:
-            print("Invalid JSON format in input file.")
-            return
+            print("Invalid JSON format in input file.", file=sys.stderr)
+            sys.exit(1)
 
     customer_state = {
         "is_customer": False,
@@ -131,11 +157,12 @@ def analyze_single_session():
 
     results = []
 
-    print(f"Loaded {len(sessions)} sessions for analysis.")
+    print(f"Loaded {len(sessions)} sessions for analysis.", file=sys.stderr)
 
     for i, session in enumerate(sessions):
         sid = session.get('session_id', f'sess_{i}')
-        print(f"[{i+1}/{len(sessions)}] Analyzing {sid}...", end="")
+        print(f"[{i+1}/{len(sessions)}] Analyzing {sid}...",
+              end="", file=sys.stderr)
 
         metrics = calculate_session_metrics(session)
 
@@ -196,21 +223,24 @@ def analyze_single_session():
                 }
 
                 results.append(combined_data)
-                print("\tDone")
+                print("\tDone", file=sys.stderr)
             else:
-                print("Failed to parse response.")
+                print("Failed to parse response.", file=sys.stderr)
         except Exception as e:
-            print(f"Error during analysis: {e}")
+            print(f"Error during analysis: {e}", file=sys.stderr)
             if "429" in str(e):
-                print("Rate limited. Waiting...")
+                print("Rate limited. Waiting...", file=sys.stderr)
                 time.sleep(10)
         time.sleep(1)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error: Failed to write output file: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    print(f"\nAnalysis completed! Saved to: {output_path}")
+    print(output_path)
 
 
 def calculate_session_metrics(session):
