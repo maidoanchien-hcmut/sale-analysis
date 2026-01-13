@@ -10,56 +10,55 @@ import (
 var (
 	DbPath            string
 	SchemaPath        string
+	DirUpload         string
 	PythonCmd         string
 	ScriptSessionizer string
 	ScriptAnalyzer    string
-	DirSample         string
 )
 
 func Init() {
 	if v := os.Getenv("PYTHON_CMD"); v != "" {
 		PythonCmd = v
 		log.Printf("Using PYTHON_CMD from env: %s", PythonCmd)
-		return
-	}
-
-	searchPaths := []string{
-		".",
-		"..",
-		"../..",
-	}
-
-	venvFound := false
-	for _, root := range searchPaths {
-		possiblePythons := []string{
-			filepath.Join(root, ".venv", "Scripts", "python.exe"),
-			filepath.Join(root, ".venv", "bin", "python3"),
-			filepath.Join(root, ".venv", "bin", "python"),
+	} else {
+		searchPaths := []string{
+			".",
+			"..",
+			"../..",
 		}
 
-		for _, p := range possiblePythons {
-			if _, err := os.Stat(p); err == nil {
-				if absPath, err := filepath.Abs(p); err == nil {
-					PythonCmd = absPath
-				} else {
-					PythonCmd = p
+		venvFound := false
+		for _, root := range searchPaths {
+			possiblePythons := []string{
+				filepath.Join(root, ".venv", "Scripts", "python.exe"),
+				filepath.Join(root, ".venv", "bin", "python3"),
+				filepath.Join(root, ".venv", "bin", "python"),
+			}
+
+			for _, p := range possiblePythons {
+				if _, err := os.Stat(p); err == nil {
+					if absPath, err := filepath.Abs(p); err == nil {
+						PythonCmd = absPath
+					} else {
+						PythonCmd = p
+					}
+					venvFound = true
+					log.Printf("Found project root .venv: %s", PythonCmd)
+					break
 				}
-				venvFound = true
-				log.Printf("Found project root .venv: %s", PythonCmd)
+			}
+			if venvFound {
 				break
 			}
 		}
-		if venvFound {
-			break
-		}
-	}
 
-	if !venvFound {
-		log.Println("Project .venv not found. Falling back to system python...")
-		for _, name := range []string{"python3", "python"} {
-			if p, err := exec.LookPath(name); err == nil {
-				PythonCmd = p
-				break
+		if !venvFound {
+			log.Println("Project .venv not found. Falling back to system python...")
+			for _, name := range []string{"python3", "python"} {
+				if p, err := exec.LookPath(name); err == nil {
+					PythonCmd = p
+					break
+				}
 			}
 		}
 	}
@@ -96,15 +95,15 @@ func Init() {
 		}
 	}
 
-	if v := os.Getenv("SAMPLE_DIR"); v != "" {
-		DirSample = v
+	if v := os.Getenv("UPLOAD_DIR"); v != "" {
+		DirUpload = v
 	} else {
-		if _, err := os.Stat("./json/sample"); err == nil {
-			DirSample = "./json/sample"
+		if _, err := os.Stat("./json/upload"); err == nil {
+			DirUpload = "./json/upload"
 		} else {
-			DirSample = "../json/sample"
+			DirUpload = "../json/upload"
 		}
 	}
 
-	log.Printf("Config: Python=%s, Scripts=%s", PythonCmd, scriptDir)
+	log.Printf("Config: Python=%s, Scripts=%s, UploadDir=%s, DB=%s, Schema=%s", PythonCmd, scriptDir, DirUpload, DbPath, SchemaPath)
 }

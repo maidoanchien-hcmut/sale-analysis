@@ -20,7 +20,7 @@ func main() {
 	config.Init()
 	database.Init()
 
-	os.MkdirAll(config.DirSample, 0755)
+	os.MkdirAll(config.DirUpload, 0755)
 
 	http.HandleFunc("/api/process", utils.CorsMiddleware(handlers.HandleProcess))
 	http.HandleFunc("/api/dashboard", utils.CorsMiddleware(handlers.HandleDashboard))

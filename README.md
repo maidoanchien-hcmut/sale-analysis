@@ -163,28 +163,6 @@ The Chrome extension popup shows a compact dashboard and a file upload to proces
 
 ---
 
-## Test upload (curl)
-
-From project root, upload a sample file to the backend:
-
-Windows cmd.exe
-
-```
-cd \path\to\sale-analysis
-curl -v -F "file=@sample_input/sample_1.json" http://localhost:8080/api/process
-```
-
-macOS / Linux
-
-```
-cd /path/to/sale-analysis
-curl -v -F 'file=@sample_input/sample_1.json' http://localhost:8080/api/process
-```
-
-The backend will run the sessionizer, analyzer (LLM), import the analyzed sessions into SQLite, and return the analyzed JSON.
-
----
-
 ## Dashboard API (star-schema aggregates)
 
 Fetch the dashboard metrics:

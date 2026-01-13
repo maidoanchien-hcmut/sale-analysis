@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -33,36 +32,16 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, file); err != nil {
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Error buffering file", err.Error())
-		return
-	}
-	contentBytes := buf.Bytes()
-	fileHash := sha256.Sum256(contentBytes)
-	hashHex := hex.EncodeToString(fileHash[:])
-
-	db, err := sql.Open("sqlite3", config.DbPath)
-	if err == nil {
-		defer db.Close()
-		var exists int
-		_ = db.QueryRow("SELECT 1 FROM processed_uploads WHERE file_hash = ?", hashHex).Scan(&exists)
-		if exists == 1 {
-			utils.JSONResponse(w, http.StatusConflict, false, "Duplicate file detected (same content)", map[string]string{"hash": hashHex})
-			return
-		}
-	} else {
-		log.Printf("Warning: cannot open DB for duplicate check: %v", err)
-	}
-
+	// Prepare destination path
 	timestamp := time.Now().Unix()
 	origName := "upload.json"
 	if header != nil && header.Filename != "" {
 		origName = header.Filename
 	}
 	filename := fmt.Sprintf("upload_%d.json", timestamp)
-	inputPath := filepath.Join(config.DirSample, filename)
+	inputPath := filepath.Join(config.DirUpload, filename)
 
+	// Stream to disk while hashing to avoid keeping the whole file in memory
 	dst, err := os.Create(inputPath)
 	if err != nil {
 		utils.JSONResponse(w, http.StatusInternalServerError, false, "Error creating file", err.Error())
@@ -70,9 +49,27 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dst.Close()
 
-	if _, err := dst.Write(contentBytes); err != nil {
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Error writing file", err.Error())
+	hasher := sha256.New()
+	tee := io.TeeReader(file, hasher)
+	if _, err := io.Copy(dst, tee); err != nil {
+		utils.JSONResponse(w, http.StatusInternalServerError, false, "Error saving file", err.Error())
 		return
+	}
+	hashHex := hex.EncodeToString(hasher.Sum(nil))
+
+	// Duplicate check; if duplicate, remove the saved file
+	db, err := sql.Open("sqlite3", config.DbPath)
+	if err == nil {
+		defer db.Close()
+		var exists int
+		_ = db.QueryRow("SELECT 1 FROM processed_uploads WHERE file_hash = ?", hashHex).Scan(&exists)
+		if exists == 1 {
+			_ = os.Remove(inputPath)
+			utils.JSONResponse(w, http.StatusConflict, false, "Duplicate file detected (same content)", map[string]string{"hash": hashHex})
+			return
+		}
+	} else {
+		log.Printf("Warning: cannot open DB for duplicate check: %v", err)
 	}
 
 	if !utils.ValidateJSONFormat(inputPath) {
@@ -87,17 +84,9 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("Running Sessionizer on %s...", inputPath)
-	sessionizedPath, err := utils.RunPythonScript(config.ScriptSessionizer, inputPath)
-	if err != nil {
-		log.Printf("Sessionizer Error: %v", err)
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Sessionizer failed", err.Error())
-		return
-	}
-	log.Printf("Sessionizer output: %s", sessionizedPath)
-
-	log.Printf("Running Analyzer on %s...", sessionizedPath)
-	analyzedPath, err := utils.RunPythonScript(config.ScriptAnalyzer, sessionizedPath)
+	// Analyzer now sessionizes in-memory; call it directly with the raw input
+	log.Printf("Running Analyzer on raw input %s...", inputPath)
+	analyzedPath, err := utils.RunPythonScript(config.ScriptAnalyzer, inputPath)
 	if err != nil {
 		log.Printf("Analyzer Error: %v", err)
 		utils.JSONResponse(w, http.StatusInternalServerError, false, "Analyzer failed", err.Error())
@@ -105,28 +94,20 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Analyzer output: %s", analyzedPath)
 
-	analyzedData, err := os.ReadFile(analyzedPath)
-	if err != nil {
-		log.Printf("Error reading analyzed output: %v", err)
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Failed to read analyzer output", err.Error())
-		return
-	}
-
-	var sessions []models.AnalyzedSession
-	if err := json.Unmarshal(analyzedData, &sessions); err != nil {
-		log.Printf("Error parsing analyzed JSON: %v", err)
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Invalid analyzed JSON format", err.Error())
-		return
-	}
-
-	log.Printf("Importing to SQLite... (%d sessions)", len(sessions))
+	// Import to DB using a streaming decoder to reduce memory
 	if err := importToDB(analyzedPath); err != nil {
 		log.Printf("Database import error: %v", err)
 		utils.JSONResponse(w, http.StatusInternalServerError, false, "Database import failed", err.Error())
 		return
 	}
 
-	log.Printf("Import completed: %d sessions imported from %s", len(sessions), analyzedPath)
+	// Return the analyzed JSON back to client (read as bytes for response)
+	analyzedData, err := os.ReadFile(analyzedPath)
+	if err != nil {
+		log.Printf("Error reading analyzed output: %v", err)
+		utils.JSONResponse(w, http.StatusInternalServerError, false, "Failed to read analyzer output", err.Error())
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(analyzedData)
@@ -208,11 +189,6 @@ func importToDB(jsonPath string) error {
 	}
 	defer file.Close()
 
-	var sessions []models.AnalyzedSession
-	if err := json.NewDecoder(file).Decode(&sessions); err != nil {
-		return err
-	}
-
 	db, err := sql.Open("sqlite3", config.DbPath)
 	if err != nil {
 		return err
@@ -224,7 +200,25 @@ func importToDB(jsonPath string) error {
 		return err
 	}
 
-	for _, s := range sessions {
+	dec := json.NewDecoder(file)
+	// Expect a JSON array
+	t, err := dec.Token()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if delim, ok := t.(json.Delim); !ok || delim != '[' {
+		tx.Rollback()
+		return fmt.Errorf("expected JSON array in analyzed output")
+	}
+
+	for dec.More() {
+		var s models.AnalyzedSession
+		if err := dec.Decode(&s); err != nil {
+			tx.Rollback()
+			return err
+		}
+
 		cusID := database.GetOrInsertDim(tx, "dim_customers", "customer_type", s.CustomerType)
 		outID := database.GetOrInsertDim(tx, "dim_outcomes", "outcome_code", s.Outcome)
 		qualID := database.GetOrInsertDim(tx, "dim_quality", "quality_code", s.RepQuality)
@@ -239,21 +233,28 @@ func importToDB(jsonPath string) error {
 			ON CONFLICT(session_id_original) DO UPDATE SET
 			outcome_id=excluded.outcome_id, outcome_reason_text=excluded.outcome_reason_text;
 		`
-		_, err = tx.Exec(query,
+		if _, err = tx.Exec(query,
 			s.SessionID, cusID, outID, qualID, riskID,
 			s.Meta.StartTime, s.Meta.EndTime, s.Meta.MessageCount,
 			s.Metrics.AvgResponseTimeMinutes, s.Metrics.MaxResponseTimeMinutes,
 			s.OutcomeReason, s.RiskEvidence,
-		)
-		if err != nil {
+		); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
+	// Consume closing ']'
+	_, err = dec.Token()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return tx.Commit()
 }
 
+// Legacy helper funcs retained if used elsewhere
 func queryCount(db *sql.DB, query string) int {
 	var count int
 	err := db.QueryRow(query).Scan(&count)

@@ -171,6 +171,14 @@ async function upload() {
 
     const data = await resp.json()
     result.value = data
+
+    try {
+      const dashResp = await fetch(DASHBOARD_API)
+      if (dashResp.ok) {
+        dashboard.value = await dashResp.json()
+        updateCharts()
+      }
+    } catch {}
   } catch (err: any) {
     error.value = err?.message || String(err)
   } finally {
