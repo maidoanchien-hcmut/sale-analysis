@@ -39,18 +39,22 @@ class SessionAnalysis(BaseModel):
     )
 
     customer_status_update: Literal["has_purchased", "has_complained", "no_change"] = Field(
-        description="Đánh dấu nếu phiên này khách đã mua hàng hoặc khiếu nại để cập nhật hồ sơ."
+        description="Đánh dấu nếu phiên này khách đã mua hàng (outcome là won_*) hoặc khiếu nại để cập nhật hồ sơ."
     )
 
     rep_quality: Literal[
         "consultative", "transactional",
         "robot_script", "pushy", "negligent"
-    ] = Field(description="Đánh giá chất lượng tư vấn")
+    ] = Field(description="""Đánh giá chất lượng tư vấn, consultative: Tư vấn giải pháp, khơi gợi nhu cầu (Tốt).
+                            transactional: Hỏi đâu đáp đó, thụ động (Trung bình).
+                            robot_script: Lạm dụng văn mẫu, copy-paste vô cảm.
+                            pushy: Thúc ép khách thô thiển, gây phản cảm.
+                            negligent: Bỏ sót câu hỏi, rep thiếu thông tin.""")
 
     risk_flag: Literal[
         "fraud_off_platform", "toxic_language",
         "over_promise", "non_compliant", "none"
-    ] = Field(description="Cờ báo rủi ro vận hành")
+    ] = Field(description="Cờ báo rủi ro vận hành, do sale gây ra, chỉ chọn fraud_off_platform nếu sale khơi mào hoặc đồng ý với mời gọi của khách")
 
     risk_evidence: Optional[str] = Field(
         description="Trích dẫn nguyên văn câu nói vi phạm của Sale hoặc mô tả hành vi sai quy trình. Ví dụ: 'Sale không chào khách', 'Sale nói cam kết trị hết 100%'.",
@@ -82,7 +86,7 @@ Customer: "Ok cảm ơn Thảo."
     "customer_type": "new_hot",
     "outcome": "won_standard",
     "outcome_reason": null,
-    "customer_status_update": "no_change",
+    "customer_status_update": "has_purchased",
     "rep_quality": "consultative",
     "risk_flag": "none",
     "risk_evidence": null,

@@ -1,4 +1,3 @@
-
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS dim_customers (
@@ -47,6 +46,13 @@ CREATE TABLE IF NOT EXISTS fact_sessions (
     FOREIGN KEY(outcome_id) REFERENCES dim_outcomes(outcome_id),
     FOREIGN KEY(quality_id) REFERENCES dim_quality(quality_id),
     FOREIGN KEY(risk_id) REFERENCES dim_risks(risk_id)
+);
+
+CREATE TABLE IF NOT EXISTS processed_uploads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_hash TEXT UNIQUE,
+    file_name TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT OR IGNORE INTO dim_risks (risk_code) VALUES ('none');

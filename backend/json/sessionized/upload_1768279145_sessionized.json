@@ -1,0 +1,289 @@
+[
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_1",
+    "start_time": "2026-02-01T09:15:00Z",
+    "end_time": "2026-02-01T09:36:00Z",
+    "message_count": 10,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-01T09:15:00Z",
+        "content": "Chào shop, cho mình hỏi giá lấy nhân mụn với."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-01T09:16:45Z",
+        "content": "Chào bạn, Thảo là tư vấn viên O2 SKIN ạ. Giá lấy nhân mụn y khoa bên mình dao động từ 290.000đ - 350.000đ tùy gói dịch vụ (đã bao gồm đắp mặt nạ). Mình xưng hô với bạn thế nào cho tiện ạ?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-01T09:18:10Z",
+        "content": "Tên Minh nha. Mình là sinh viên."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-01T09:20:05Z",
+        "content": "Dạ chào Minh. Với HSSV bên Thảo có ưu đãi giảm 100% phí khám và hỗ trợ giá dịch vụ đó ạ. Da Minh đang bị mụn ẩn hay mụn viêm sưng nhiều không?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-01T09:22:30Z",
+        "content": "Mụn viêm ở má với cằm, đau lắm. Mình bị mấy tháng nay rồi."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-01T09:25:15Z",
+        "content": "Thảo hiểu cảm giác khó chịu này của Minh. Mụn viêm đau cần xử lý nhẹ nhàng chuẩn y khoa để tránh vỡ lây lan. Minh chụp giúp Thảo vùng da đang bị viêm (camera thường) để Thảo xem mức độ và hướng dẫn Minh cách vệ sinh da tạm thời nhé?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-01T09:30:00Z",
+        "content": "[Hình ảnh đính kèm]"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-01T09:32:40Z",
+        "content": "Cảm ơn Minh. Qua hình ảnh, Thảo thấy các nốt viêm đang có dấu hiệu gom còi nhưng nền da còn đỏ. Giai đoạn này Minh hạn chế sờ tay lên mặt và dùng nước muối sinh lý lau nhẹ nhé. Minh tiện ghé chi nhánh nào để bác sĩ soi da kỹ hơn ạ?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-01T09:35:10Z",
+        "content": "Để mình xem lịch học đã rồi nhắn lại sau nhé."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-01T09:36:00Z",
+        "content": "Dạ, khi nào có lịch Minh cứ nhắn Thảo hỗ trợ đặt hẹn để không phải chờ lâu nha."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_2",
+    "start_time": "2026-02-03T14:00:22Z",
+    "end_time": "2026-02-03T14:06:12Z",
+    "message_count": 5,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-03T14:00:22Z",
+        "content": "Thảo ơi, chiều mai 4h mình ghé chi nhánh Thủ Đức được không?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-03T14:02:15Z",
+        "content": "Chào Minh, Thảo check lịch bác sĩ chi nhánh Thủ Đức chiều mai 4h còn trống ạ. Thảo chốt lịch khám và tư vấn mụn cho Minh khung giờ này nhé?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-03T14:03:05Z",
+        "content": "Ok chốt nhé. Cần mang gì không?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-03T14:05:30Z",
+        "content": "Dạ Minh nhớ mang thẻ HSSV (hoặc hình chụp) và CCCD/VNeID để được áp dụng ưu đãi giảm giá nha. Nếu Minh đang dùng sản phẩm gì ở nhà thì chụp lại vỏ chai mang theo để bác sĩ xem thành phần luôn ạ."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-03T14:06:12Z",
+        "content": "Ok cảm ơn Thảo."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_3",
+    "start_time": "2026-02-05T10:15:00Z",
+    "end_time": "2026-02-05T10:22:00Z",
+    "message_count": 5,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-05T10:15:00Z",
+        "content": "Thảo ơi, hôm qua mình lấy mụn về nay thấy mặt vẫn còn đỏ quá, có sao không?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-05T10:17:20Z",
+        "content": "Thảo chào Minh. Thảo rất tiếc vì trải nghiệm lo lắng này. Thông thường sau khi lấy nhân mụn, da sẽ cần 1-2 ngày để phục hồi nên hiện tượng đỏ nhẹ là bình thường ạ. Minh có cảm thấy ngứa hay nóng rát nhiều không?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-05T10:18:45Z",
+        "content": "Không ngứa, chỉ thấy đỏ mấy nốt nặn thôi."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-05T10:21:10Z",
+        "content": "Dạ nếu không ngứa rát thì Minh an tâm nhé, đó là phản ứng da đang lành thương thôi ạ. Minh nhớ bôi thuốc chấm mụn bác sĩ kê và tránh nắng kỹ giúp Thảo nha. Khoảng mai là da sẽ dịu lại nhiều ạ."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-05T10:22:00Z",
+        "content": "Ok để mình theo dõi thêm."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_4",
+    "start_time": "2026-02-15T19:30:10Z",
+    "end_time": "2026-02-15T19:36:50Z",
+    "message_count": 4,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-15T19:30:10Z",
+        "content": "Bữa bác sĩ kê cho mình chai sữa rửa mặt Papulex mà mình dùng hết rồi. Giờ muốn mua thêm thì sao?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-15T19:32:45Z",
+        "content": "Dạ chào Minh, da mình nay cải thiện tốt chưa ạ? Chai Papulex Gel 150ml giá niêm yết là 390k. Minh muốn ship về nhà hay ghé phòng khám lấy ạ?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-15T19:34:20Z",
+        "content": "Ship về địa chỉ cũ cho mình nhé. Da đỡ mụn rồi, giờ còn thâm thôi."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-15T19:36:50Z",
+        "content": "Dạ tin vui quá! Nếu còn thâm, Thảo gợi ý Minh có thể kết hợp thêm serum Vitamin C hoặc đặt lịch điện di Vitamin C tuần sau để mờ thâm nhanh hơn nhé. Thảo lên đơn sữa rửa mặt ship liền cho Minh ạ."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_5",
+    "start_time": "2026-02-20T10:00:15Z",
+    "end_time": "2026-02-20T10:18:00Z",
+    "message_count": 3,
+    "messages": [
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-20T10:00:15Z",
+        "content": "Chào Minh, đơn Papulex chắc Minh nhận được rồi ha. Thảo nhắn để hỏi thăm xem Minh có muốn tham khảo dòng Serum Vitamin C đặc trị thâm bên Thảo không? Dòng này đang có ưu đãi mua kèm liệu trình giảm 20% ạ."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-02-20T10:15:30Z",
+        "content": "Giá sao vậy Thảo?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-02-20T10:18:00Z",
+        "content": "Dạ chai Serum C 30ml giá gốc 980k, giảm còn 784k nếu Minh đặt kèm lịch chăm sóc da tuần này ạ. Chai này dùng được 3-4 tháng lận Minh nha."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_6",
+    "start_time": "2026-03-10T14:20:10Z",
+    "end_time": "2026-03-10T14:30:15Z",
+    "message_count": 4,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-03-10T14:20:10Z",
+        "content": "Thảo ơi, đợt trước mình bận quá chưa rep. Giờ thâm vẫn còn, mà serum kia cao quá sinh viên mình đu không nổi hic. Có loại nào rẻ hơn không?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-03-10T14:25:45Z",
+        "content": "Chào Minh, không sao nè. Thảo hiểu vấn đề ngân sách của sinh viên mà. Nếu vậy Minh có thể tham khảo tuýp Gel Megaduo nhé, giá chỉ 130k thôi. Em này trị thâm chậm hơn serum C chút xíu nhưng rất lành tính và hợp túi tiền ạ. Minh lấy thử tuýp này nha?"
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-03-10T14:28:00Z",
+        "content": "Ừa giá đó ổn áp đó. Lấy mình 1 tuýp, ship về chỗ cũ nhé."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-03-10T14:30:15Z",
+        "content": "Dạ rồi, Thảo lên đơn Megaduo ship liền cho Minh. Minh nhớ kiên trì bôi sáng tối để mờ thâm nha."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_7",
+    "start_time": "2026-03-25T20:00:05Z",
+    "end_time": "2026-03-25T20:08:12Z",
+    "message_count": 3,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-03-25T20:00:05Z",
+        "content": "Thảo ơi mình feedback chút. Chiều nay mình ghé lấy nhân mụn mà chờ lâu quá, đặt lịch 3h mà 3h45 mới được làm. Trễ hết giờ làm thêm của mình."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-03-25T20:05:30Z",
+        "content": "Dạ Thảo thay mặt phòng khám xin lỗi Minh rất nhiều vì sự bất tiện này ạ. Hôm nay có ca mụn nặng phát sinh nên bác sĩ xử lý hơi lâu dẫn đến bị dồn lịch. Thảo đã báo quản lý CSKH để rút kinh nghiệm. Để chuộc lỗi, lần tới Minh ghé Thảo tặng Minh 1 voucher giảm 50k trừ trực tiếp vào dịch vụ nhé. Mong Minh thông cảm cho O2 SKIN ạ."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-03-25T20:08:12Z",
+        "content": "Ok lần sau để ý giúp mình, chứ chờ lâu oải lắm."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_8",
+    "start_time": "2026-04-15T09:10:20Z",
+    "end_time": "2026-04-15T09:20:10Z",
+    "message_count": 4,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-04-15T09:10:20Z",
+        "content": "Mình thấy bên Spa X quảng cáo peel da trị thâm có 99k/buổi. Bên mình có giá đó không? Chứ 400-500k chát quá."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-04-15T09:15:40Z",
+        "content": "Dạ Minh ơi, giá peel da bên Thảo niêm yết dựa trên chi phí thuốc nhập khẩu chính hãng và quy trình bác sĩ trực tiếp thực hiện để đảm bảo an toàn. Các mức giá quá rẻ 99k thường là peel nông hoặc do kỹ thuật viên làm, rủi ro kích ứng khá cao đó ạ. Minh cân nhắc kỹ nhé."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-04-15T09:18:00Z",
+        "content": "Thôi để mình qua bên kia trải nghiệm thử xem sao, sinh viên tiết kiệm được nhiêu hay bấy nhiêu."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-04-15T09:20:10Z",
+        "content": "Dạ Thảo tôn trọng quyết định của Minh ạ. Nếu có vấn đề gì về da cần hỗ trợ, Minh cứ nhắn Thảo nhé. Chúc Minh có làn da đẹp ạ."
+      }
+    ]
+  },
+  {
+    "session_id": "upload_1768279145_20260113T043905_sess_9",
+    "start_time": "2026-05-05T08:00:15Z",
+    "end_time": "2026-05-05T08:08:15Z",
+    "message_count": 5,
+    "messages": [
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-05-05T08:00:15Z",
+        "content": "Thảo ơi cứu mình với! Mình làm bên kia về giờ mặt sưng vù, nổi mụn nước li ti khắp mặt rồi. Ngứa điên lên được hic."
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-05-05T08:02:45Z",
+        "content": "Trời ơi, Minh bình tĩnh nha. Khả năng cao là da bị kích ứng hoặc bỏng hóa chất rồi. Minh đừng gãi hay bôi gì lung tung nhé. Minh ghé ngay chi nhánh gần nhất sáng nay được không? Thảo báo bác sĩ ưu tiên khám cấp cứu da cho Minh liền."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-05-05T08:04:30Z",
+        "content": "Được được, mình qua Thủ Đức liền. Mà giờ hết tiền rồi, phí khám với thuốc mắc không Thảo? Hay mình chuyển khoản riêng cho Thảo để Thảo kê khống giảm giá cho mình được không?"
+      },
+      {
+        "sender_name": "page",
+        "timestamp": "2026-05-05T08:07:00Z",
+        "content": "Dạ về chi phí Minh yên tâm là với HSSV vẫn được miễn phí 100% tiền khám bệnh ạ, thuốc thì bác sĩ sẽ kê loại thiết yếu nhất. Còn việc chuyển khoản riêng thì Thảo xin phép từ chối ạ, vì bên Thảo quy định thanh toán minh bạch qua hệ thống để lưu hồ sơ bảo hành cho Minh đó ạ. Minh cứ ghé đi, Thảo hỗ trợ xin bác sĩ phác đồ tiết kiệm nhất để cứu da trước nha."
+      },
+      {
+        "sender_name": "customer",
+        "timestamp": "2026-05-05T08:08:15Z",
+        "content": "Ok cảm ơn Thảo nhiều lắm. Mình chạy qua liền."
+      }
+    ]
+  }
+]

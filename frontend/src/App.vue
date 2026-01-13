@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 const BACKEND_API = 'http://localhost:8080/api/process'
 const DASHBOARD_API = 'http://localhost:8080/api/dashboard'
@@ -9,6 +9,93 @@ const loading = ref(false)
 const result = ref<any | null>(null)
 const error = ref<string | null>(null)
 const dashboard = ref<any | null>(null)
+
+const custPie = ref<HTMLCanvasElement | null>(null)
+const outcomePie = ref<HTMLCanvasElement | null>(null)
+const outcomeBar = ref<HTMLCanvasElement | null>(null)
+
+const palette: string[] = ['#2563eb','#16a34a','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#f43f5e','#22c55e','#e11d48']
+function colorForKey(keys: string[], key: string): string {
+  const idx = keys.indexOf(key)
+  const i = idx >= 0 ? idx : 0
+  const color = palette[i % palette.length]
+  return color || '#2563eb'
+}
+
+function drawPie(canvas: HTMLCanvasElement, data: Record<string, number>) {
+  const ctx = canvas.getContext('2d')!
+  const w = canvas.width, h = canvas.height
+  ctx.clearRect(0, 0, w, h)
+  const values = Object.values(data).map(v => typeof v === 'number' ? v : 0)
+  const total = values.reduce((a, b) => a + b, 0)
+  if (total <= 0) return
+  let start = -Math.PI / 2
+  const keys = Object.keys(data)
+  const pieRadius = Math.min(h, w/2) / 2 - 4
+  const pieX = pieRadius + 4, pieY = h/2
+
+  keys.forEach((k, i) => {
+    const raw = data[k]
+    const val = typeof raw === 'number' ? raw : 0
+    const angle = (val / total) * Math.PI * 2
+    ctx.beginPath()
+    ctx.moveTo(pieX, pieY)
+    ctx.arc(pieX, pieY, pieRadius, start, start + angle)
+    ctx.closePath()
+    const color = colorForKey(keys, k)
+    ctx.fillStyle = color
+    ctx.fill()
+    start += angle
+  })
+
+  ctx.font = '11px system-ui'
+  const legendX = pieX + pieRadius + 15
+  const legendY = 15
+  keys.forEach((k, i) => {
+    const y = legendY + i * 14
+    const color = colorForKey(keys, k)
+    ctx.fillStyle = color
+    ctx.fillRect(legendX, y - 8, 10, 10)
+    ctx.fillStyle = '#374151'
+    ctx.fillText(`${k}: ${data[k]}`, legendX + 14, y)
+  })
+}
+
+function drawBar(canvas: HTMLCanvasElement, data: Array<{label:string, value:number, color:string}>) {
+  const ctx = canvas.getContext('2d')!
+  const w = canvas.width, h = canvas.height
+  ctx.clearRect(0,0,w,h)
+  const safeData = data.map(d => ({ label: d.label ?? '', value: typeof d.value === 'number' ? d.value : 0, color: d.color || '#2563eb' }))
+  const max = Math.max(1, ...safeData.map(d=>d.value))
+  const barW = Math.max(6, Math.floor((w - 8) / Math.max(1, safeData.length)))
+  ctx.font = '11px system-ui'
+  ctx.textAlign = 'center'
+  safeData.forEach((d, i) => {
+    const x = 4 + i * barW
+    const barH = Math.round((d.value / max) * (h - 28))
+    ctx.fillStyle = d.color
+    ctx.fillRect(x, h - barH - 14, barW - 2, barH)
+    ctx.fillStyle = '#000000'
+    ctx.fillText(d.value.toFixed(1), x + (barW-2)/2, h - barH - 2)
+    ctx.fillStyle = '#000000'
+    const label = outcomeAbbrev(d.label)
+    ctx.fillText(label, x + (barW-2)/2, h - 2)
+  })
+}
+
+function updateCharts() {
+  if (!dashboard.value) return
+  const outcomesDist: Record<string, number> = dashboard.value.sessions_by_outcome || {}
+  const outcomeKeys = Object.keys(outcomesDist)
+  if (custPie.value) drawPie(custPie.value, dashboard.value.sessions_by_customer_type || {})
+  if (outcomePie.value) drawPie(outcomePie.value, outcomesDist)
+  const avgByOutcome: Array<{label:string, value:number, color:string}> = []
+  const avgData: Record<string, number> = dashboard.value.avg_response_by_outcome || {}
+  outcomeKeys.forEach(k=>{
+    avgByOutcome.push({label:k, value: avgData[k] ?? 0, color: colorForKey(outcomeKeys, k)})
+  })
+  if (outcomeBar.value) drawBar(outcomeBar.value, avgByOutcome)
+}
 
 function isValidSessionJson(obj: any): boolean {
   if (!obj || typeof obj !== 'object') return false
@@ -91,16 +178,29 @@ async function upload() {
   }
 }
 
-// Fetch dashboard data on mount
 onMounted(async () => {
   try {
     const resp = await fetch(DASHBOARD_API)
     if (!resp.ok) throw new Error('Failed to load dashboard')
     dashboard.value = await resp.json()
   } catch (err: any) {
-    dashboard.value = { total_sessions: 0, total_customers: 0, total_purchases: 0, total_complaints: 0 }
+    dashboard.value = { total_sessions: 0 }
   }
+  updateCharts()
 })
+
+watch(dashboard, () => updateCharts())
+
+function outcomeAbbrev(label: string): string {
+  const map: Record<string,string> = {
+    won_standard: 'w_s', won_upsell: 'w_u', won_downsell: 'w_d',
+    lost_price: 'l_p', lost_fit: 'l_f', lost_competitor: 'l_c', lost_service: 'l_s',
+    lost_stock: 'l_st', lost_logistics: 'l_l', lost_payment: 'l_pm',
+    ghost_early: 'g_e', ghost_post_price: 'g_pp', ghost_checkout: 'g_co',
+    spam_junk: 'spam', support_inquiry: 'sup', stalled: 'stl'
+  }
+  return map[label] || (label.length > 8 ? label.slice(0,8)+'…' : label)
+}
 </script>
 
 <template>
@@ -112,31 +212,18 @@ onMounted(async () => {
       <div class="metric"><b>Total Sessions:</b> {{ dashboard?.total_sessions ?? 0 }}</div>
 
       <div class="group">
-        <div class="group-title">By Customer Type</div>
-        <ul>
-          <li v-for="(v,k) in dashboard?.sessions_by_customer_type || {}" :key="'cust-'+k">{{ k }}: {{ v }}</li>
-        </ul>
+        <div class="group-title">Customer Types</div>
+        <canvas ref="custPie" width="260" height="120"></canvas>
       </div>
 
       <div class="group">
-        <div class="group-title">By Outcome</div>
-        <ul>
-          <li v-for="(v,k) in dashboard?.sessions_by_outcome || {}" :key="'out-'+k">{{ k }}: {{ v }}</li>
-        </ul>
+        <div class="group-title">Outcomes</div>
+        <canvas ref="outcomePie" width="260" height="120"></canvas>
       </div>
 
       <div class="group">
-        <div class="group-title">By Quality</div>
-        <ul>
-          <li v-for="(v,k) in dashboard?.sessions_by_quality || {}" :key="'qual-'+k">{{ k }}: {{ v }}</li>
-        </ul>
-      </div>
-
-      <div class="group">
-        <div class="group-title">By Risk</div>
-        <ul>
-          <li v-for="(v,k) in dashboard?.sessions_by_risk || {}" :key="'risk-'+k">{{ k }}: {{ v }}</li>
-        </ul>
+        <div class="group-title">Avg Response Time (min) by Outcome</div>
+        <canvas ref="outcomeBar" width="260" height="140"></canvas>
       </div>
     </div>
 
@@ -159,20 +246,13 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.popup {
-  width: 300px;
-  padding: 10px;
-  box-sizing: border-box;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
-}
+.popup { width: 300px; padding: 10px; box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial; }
 .title { font-size: 14px; margin: 0 0 6px; }
 .dashboard { background: #f6f7f9; border-radius: 8px; padding: 8px; margin-bottom: 10px; }
 .dashboard-title { font-size: 13px; margin-bottom: 4px; color: #2563eb; }
 .metric { font-size: 12px; margin-bottom: 6px; }
 .group { margin-bottom: 8px; }
 .group-title { font-size: 12px; color:#374151; margin-bottom: 4px; }
-ul { list-style: none; padding: 0; margin: 0; }
-li { font-size: 11.5px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row { margin-bottom: 8px; }
 .actions { display: flex; justify-content: flex-end; }
 button { background: #2563eb; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
@@ -182,4 +262,5 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .result { color: #064e3b; font-size: 12px; }
 .muted { display:block; margin-top:8px; color:#6b7280; font-size:11px }
 code { font-size:11px }
+canvas { display:block; width: 260px; height: 120px; border-radius: 6px; background:#ffffff; }
 </style>
