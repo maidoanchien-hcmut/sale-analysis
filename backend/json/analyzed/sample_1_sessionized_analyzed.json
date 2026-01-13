@@ -1,0 +1,227 @@
+[
+  {
+    "session_id": "sample_1_20260112T110845_sess_1",
+    "customer_type": "new_hot",
+    "outcome": "stalled",
+    "outcome_reason": null,
+    "customer_status_update": "no_change",
+    "rep_quality": "consultative",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": false,
+      "purchase_count": 0,
+      "has_complained": false
+    },
+    "metrics": {
+      "avg_response_time_minutes": 1.98,
+      "max_response_time_minutes": 2.75,
+      "response_count": 5
+    },
+    "meta": {
+      "start_time": "2026-02-01T09:15:00Z",
+      "end_time": "2026-02-01T09:36:00Z",
+      "msg_count": 10
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_2",
+    "customer_type": "new_hot",
+    "outcome": "won_standard",
+    "outcome_reason": null,
+    "customer_status_update": "no_change",
+    "rep_quality": "consultative",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 1,
+      "has_complained": false
+    },
+    "metrics": {
+      "avg_response_time_minutes": 2.15,
+      "max_response_time_minutes": 2.42,
+      "response_count": 2
+    },
+    "meta": {
+      "start_time": "2026-02-03T14:00:22Z",
+      "end_time": "2026-02-03T14:06:12Z",
+      "msg_count": 5
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_3",
+    "customer_type": "returning_happy",
+    "outcome": "support_inquiry",
+    "outcome_reason": null,
+    "customer_status_update": "no_change",
+    "rep_quality": "consultative",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 1,
+      "has_complained": false
+    },
+    "metrics": {
+      "avg_response_time_minutes": 2.38,
+      "max_response_time_minutes": 2.42,
+      "response_count": 2
+    },
+    "meta": {
+      "start_time": "2026-02-05T10:15:00Z",
+      "end_time": "2026-02-05T10:22:00Z",
+      "msg_count": 5
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_4",
+    "customer_type": "returning_happy",
+    "outcome": "won_upsell",
+    "outcome_reason": null,
+    "customer_status_update": "has_purchased",
+    "rep_quality": "consultative",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 3,
+      "has_complained": false
+    },
+    "metrics": {
+      "avg_response_time_minutes": 2.54,
+      "max_response_time_minutes": 2.58,
+      "response_count": 2
+    },
+    "meta": {
+      "start_time": "2026-02-15T19:30:10Z",
+      "end_time": "2026-02-15T19:36:50Z",
+      "msg_count": 4
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_5",
+    "customer_type": "returning_happy",
+    "outcome": "stalled",
+    "outcome_reason": "Khách hỏi giá",
+    "customer_status_update": "no_change",
+    "rep_quality": "transactional",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 3,
+      "has_complained": false
+    },
+    "metrics": {
+      "avg_response_time_minutes": 2.5,
+      "max_response_time_minutes": 2.5,
+      "response_count": 1
+    },
+    "meta": {
+      "start_time": "2026-02-20T10:00:15Z",
+      "end_time": "2026-02-20T10:18:00Z",
+      "msg_count": 3
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_6",
+    "customer_type": "returning_happy",
+    "outcome": "won_downsell",
+    "outcome_reason": null,
+    "customer_status_update": "has_purchased",
+    "rep_quality": "consultative",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 5,
+      "has_complained": false
+    },
+    "metrics": {
+      "avg_response_time_minutes": 3.92,
+      "max_response_time_minutes": 5.58,
+      "response_count": 2
+    },
+    "meta": {
+      "start_time": "2026-03-10T14:20:10Z",
+      "end_time": "2026-03-10T14:30:15Z",
+      "msg_count": 4
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_7",
+    "customer_type": "returning_complaint",
+    "outcome": "support_inquiry",
+    "outcome_reason": null,
+    "customer_status_update": "no_change",
+    "rep_quality": "transactional",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 5,
+      "has_complained": true
+    },
+    "metrics": {
+      "avg_response_time_minutes": 5.42,
+      "max_response_time_minutes": 5.42,
+      "response_count": 1
+    },
+    "meta": {
+      "start_time": "2026-03-25T20:00:05Z",
+      "end_time": "2026-03-25T20:08:12Z",
+      "msg_count": 3
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_8",
+    "customer_type": "price_hunter",
+    "outcome": "lost_price",
+    "outcome_reason": "Khách hàng so sánh giá với đối thủ và chọn đối thủ vì giá rẻ hơn.",
+    "customer_status_update": "no_change",
+    "rep_quality": "consultative",
+    "risk_flag": "none",
+    "risk_evidence": null,
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 5,
+      "has_complained": true
+    },
+    "metrics": {
+      "avg_response_time_minutes": 3.75,
+      "max_response_time_minutes": 5.33,
+      "response_count": 2
+    },
+    "meta": {
+      "start_time": "2026-04-15T09:10:20Z",
+      "end_time": "2026-04-15T09:20:10Z",
+      "msg_count": 4
+    }
+  },
+  {
+    "session_id": "sample_1_20260112T110845_sess_9",
+    "customer_type": "returning_complaint",
+    "outcome": "won_standard",
+    "outcome_reason": null,
+    "customer_status_update": "no_change",
+    "rep_quality": "consultative",
+    "risk_flag": "fraud_off_platform",
+    "risk_evidence": "Khách hàng đề nghị chuyển khoản riêng cho Thảo để Thảo kê khống giảm giá.",
+    "customer_context": {
+      "is_customer": true,
+      "purchase_count": 6,
+      "has_complained": true
+    },
+    "metrics": {
+      "avg_response_time_minutes": 2.5,
+      "max_response_time_minutes": 2.5,
+      "response_count": 2
+    },
+    "meta": {
+      "start_time": "2026-05-05T08:00:15Z",
+      "end_time": "2026-05-05T08:08:15Z",
+      "msg_count": 5
+    }
+  }
+]

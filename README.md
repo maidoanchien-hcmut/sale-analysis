@@ -19,7 +19,7 @@ This project has a Go backend and a Vue frontend. The frontend uses Bun as packa
 -   Python scripts: `backend/script/sessionizer.py`, `backend/script/session_analyzer.py`
 -   Python requirements: `backend/script/requirements.txt`
 -   Frontend: `frontend/` (Vite + Vue)
--   DB schema: `backend/sql/schema.sql` or `backend/sql/db.sql` (the server will accept either)
+-   DB schema: `backend/sql/schema.sql`
 -   Example inputs: `sample_input/`
 
 ---
@@ -34,9 +34,11 @@ GOOGLE_API_KEY=your_real_google_api_key_here
 
 Alternatively set the environment variable before running the backend (see platform-specific notes below).
 
-If Python is not named `python` on your system (e.g. `python3`), you can set `PYTHON_CMD` env var to the executable path.
+Notes:
 
-You can also override DB and schema paths with `DB_PATH` and `SCHEMA_PATH` environment variables.
+-   The backend only auto-loads schema from `backend/sql/schema.sql` (or via `SCHEMA_PATH`). A legacy `db.sql` is not used.
+-   If Python is not named `python` on your system (e.g. `python3`), you can set `PYTHON_CMD` env var to the executable path.
+-   You can override DB and schema paths with `DB_PATH` and `SCHEMA_PATH` environment variables.
 
 ---
 
@@ -76,7 +78,8 @@ python -m pip install -r requirements.txt
 
 Notes:
 
--   `requirements.txt` is located at `backend/script/requirements.txt` and currently contains `google-genai`, `pydantic`, and `python-dotenv`.
+-   `requirements.txt` is at `backend/script/requirements.txt`.
+-   The backend prefers a virtualenv at `backend/script/.venv`. It will also detect a repo-root `.venv`.
 
 ---
 
@@ -110,9 +113,10 @@ go run -v src/main.go
 
 Notes:
 
--   The server will try to find a python executable (`python3` or `python`) automatically; set `PYTHON_CMD` if needed.
--   If your schema file is named `db.sql`, the backend looks for `./sql/schema.sql` first then `./sql/db.sql`.
--   The backend prints configuration on startup.
+-   The server exposes:
+    -   POST `/api/process` — upload a raw chat JSON, runs sessionizer/analyzer, imports into SQLite, returns analyzed JSON.
+    -   GET `/api/dashboard` — returns star-schema aggregates for the frontend dashboard.
+-   The server prints its configuration on startup.
 
 Optional: build a standalone binary:
 
@@ -153,9 +157,9 @@ bun install
 bun run dev
 ```
 
-Note: If you prefer npm/yarn, `bun` can also run package.json scripts via `bun run`.
+Note: If the frontend dev server (Vite) runs on a different port than the backend, a dev proxy in `frontend/vite.config.ts` forwards `/api` to `http://localhost:8080`.
 
-If the frontend dev server (Vite) runs on a different port than the backend, the project includes a dev proxy in `frontend/vite.config.ts` that forwards `/api` to `http://localhost:8080`. If you change the backend port, also update the Vite config or use absolute URL in the frontend code.
+The Chrome extension popup shows a compact dashboard and a file upload to process new sessions.
 
 ---
 
@@ -181,10 +185,32 @@ The backend will run the sessionizer, analyzer (LLM), import the analyzed sessio
 
 ---
 
+## Dashboard API (star-schema aggregates)
+
+Fetch the dashboard metrics:
+
+```
+curl http://localhost:8080/api/dashboard
+```
+
+Example response shape:
+
+```json
+{
+    "total_sessions": 42,
+    "sessions_by_customer_type": { "new": 10, "returning": 20, "vip": 12 },
+    "sessions_by_outcome": { "purchase": 18, "inquiry": 15, "abandon": 9 },
+    "sessions_by_quality": { "good": 25, "average": 12, "poor": 5 },
+    "sessions_by_risk": { "none": 30, "complaint": 7, "refund": 5 }
+}
+```
+
+---
+
 ## Troubleshooting
 
--   404 from frontend when calling `/api/*`: restart Vite after edits, or ensure `frontend/vite.config.ts` proxy is configured and Vite restarted. Alternatively change the fetch URL to `http://localhost:8080/api/process`.
--   If Go server exits on start, run `go run -v src/main.go 2>&1` to view errors. Common cause: missing schema file or missing SQLite driver (Go will print a build error).
+-   404 from frontend when calling `/api/*`: restart Vite after edits, or ensure `frontend/vite.config.ts` proxy is configured. Alternatively use absolute URLs (e.g., `http://localhost:8080/api/process`).
+-   If Go server exits on start, check logs. Common cause: missing `schema.sql`. Place it at `backend/sql/schema.sql` or set `SCHEMA_PATH`.
 -   If Python scripts fail, run them manually to see stderr:
 
 ```
@@ -193,4 +219,4 @@ python ./script/sessionizer.py sample_input/sample_1.json
 python ./script/session_analyzer.py backend/json/sessionized/your_file_sessionized.json
 ```
 
--   Ensure `GOOGLE_API_KEY` is set (either in `backend/script/.env` or as an environment variable). The analyzer logs a warning to stderr if the key is missing.
+-   Ensure `GOOGLE_API_KEY` is set (either in `backend/script/.env` or as an environment variable).

@@ -1,35 +1,65 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+
+const BACKEND_API = 'http://localhost:8080/api/process'
+const DASHBOARD_API = 'http://localhost:8080/api/dashboard'
 
 const selectedFile = ref<File | null>(null)
 const loading = ref(false)
 const result = ref<any | null>(null)
 const error = ref<string | null>(null)
+const dashboard = ref<any | null>(null)
 
-const exampleSnippet = `{
-  "messages": [
-    { "sender_name": "customer", "timestamp": "2026-02-01T09:15:00Z", "content": "Chào shop, cho mình hỏi giá lấy nhân mụn với." },
-    { "sender_name": "page", "timestamp": "2026-02-01T09:16:45Z", "content": "Chào bạn, Thảo là tư vấn viên O2 SKIN ạ..." },
-    { "sender_name": "customer", "timestamp": "2026-02-01T09:18:10Z", "content": "Tên Minh nha. Mình là sinh viên." }
-  ]
-}`
+function isValidSessionJson(obj: any): boolean {
+  if (!obj || typeof obj !== 'object') return false
+  if (!Array.isArray(obj.messages)) return false
+  if (obj.messages.length === 0) return false
+  const first = obj.messages[0]
+  if (!first) return false
+  return (
+    typeof first.sender_name === 'string' && first.sender_name.length > 0 &&
+    typeof first.timestamp === 'string' && first.timestamp.length > 0 &&
+    typeof first.content === 'string'
+  )
+}
 
-function onFileChange(e: Event) {
+async function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
-  // Use .item(0) which returns File | null to satisfy TypeScript
   const f = input.files?.item(0) ?? null
-  if (f) {
+  if (!f) {
+    selectedFile.value = null
+    return
+  }
+
+  try {
+    const text = await f.text()
+    let parsed: any
+    try {
+      parsed = JSON.parse(text)
+    } catch (parseErr) {
+      selectedFile.value = null
+      error.value = 'Invalid JSON: could not parse file.'
+      return
+    }
+
+    if (!isValidSessionJson(parsed)) {
+      selectedFile.value = null
+      error.value = 'Invalid format: expected {"messages": [{"sender_name","timestamp","content"}, ...] }'
+      return
+    }
+
     selectedFile.value = f
     result.value = null
     error.value = null
-  } else {
+  } catch (err: any) {
     selectedFile.value = null
+    error.value = err?.message || 'Error reading file'
   }
 }
 
 async function upload() {
   if (!selectedFile.value) {
-    error.value = 'Please select a JSON file first.'
+    error.value = 'Please select a valid JSON file first.'
     return
   }
 
@@ -41,7 +71,7 @@ async function upload() {
   form.append('file', selectedFile.value, selectedFile.value.name)
 
   try {
-    const resp = await fetch('/api/process', {
+    const resp = await fetch(BACKEND_API, {
       method: 'POST',
       body: form,
     })
@@ -60,140 +90,96 @@ async function upload() {
     loading.value = false
   }
 }
+
+// Fetch dashboard data on mount
+onMounted(async () => {
+  try {
+    const resp = await fetch(DASHBOARD_API)
+    if (!resp.ok) throw new Error('Failed to load dashboard')
+    dashboard.value = await resp.json()
+  } catch (err: any) {
+    dashboard.value = { total_sessions: 0, total_customers: 0, total_purchases: 0, total_complaints: 0 }
+  }
+})
 </script>
 
 <template>
-  <div class="container">
-    <h1>Sale Analysis — Upload</h1>
+  <div class="popup">
+    <h1 class="title">Sale Analysis</h1>
 
-    <section class="panel">
-      <h2>Example input (read-only)</h2>
-      <p class="muted">This is a small excerpt from the sample JSON shown as an example; you cannot edit it here.</p>
-      <pre class="example"><code>{{ exampleSnippet }}</code></pre>
-    </section>
+    <div class="dashboard">
+      <h2 class="dashboard-title">Dashboard</h2>
+      <div class="metric"><b>Total Sessions:</b> {{ dashboard?.total_sessions ?? 0 }}</div>
 
-    <section class="panel">
-      <h2>Upload your JSON</h2>
-      <input type="file" accept="application/json" @change="onFileChange" />
-      <div class="actions">
-        <button :disabled="!selectedFile || loading" @click="upload">Upload & Process</button>
-        <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+      <div class="group">
+        <div class="group-title">By Customer Type</div>
+        <ul>
+          <li v-for="(v,k) in dashboard?.sessions_by_customer_type || {}" :key="'cust-'+k">{{ k }}: {{ v }}</li>
+        </ul>
       </div>
 
-      <div class="status">
-        <div v-if="loading" class="loading">Processing... please wait</div>
-        <div v-if="error" class="error">Error: {{ error }}</div>
-        <div v-if="result" class="result">
-          <h3>Result</h3>
-          <pre><code>{{ JSON.stringify(result, null, 2) }}</code></pre>
-        </div>
+      <div class="group">
+        <div class="group-title">By Outcome</div>
+        <ul>
+          <li v-for="(v,k) in dashboard?.sessions_by_outcome || {}" :key="'out-'+k">{{ k }}: {{ v }}</li>
+        </ul>
       </div>
-    </section>
 
-    <footer>
-      <small>Backend endpoint: <code>/api/process</code></small>
-    </footer>
+      <div class="group">
+        <div class="group-title">By Quality</div>
+        <ul>
+          <li v-for="(v,k) in dashboard?.sessions_by_quality || {}" :key="'qual-'+k">{{ k }}: {{ v }}</li>
+        </ul>
+      </div>
+
+      <div class="group">
+        <div class="group-title">By Risk</div>
+        <ul>
+          <li v-for="(v,k) in dashboard?.sessions_by_risk || {}" :key="'risk-'+k">{{ k }}: {{ v }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <input id="file" type="file" accept="application/json" @change="onFileChange" />
+    </div>
+
+    <div class="row actions">
+      <button :disabled="!selectedFile || loading" @click="upload">Process</button>
+    </div>
+
+    <div class="status">
+      <div v-if="loading" class="loading">Processing…</div>
+      <div v-if="error" class="error">{{ error }}</div>
+      <div v-if="result" class="result">Done — {{ Array.isArray(result) ? result.length + ' sessions' : 'response' }}</div>
+    </div>
+
+    <small class="muted">Sends file to local backend at <code>http://localhost:8080</code></small>
   </div>
 </template>
 
 <style scoped>
-.container {
-  max-width: 900px;
-  margin: 36px auto;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  padding: 0 16px;
+.popup {
+  width: 300px;
+  padding: 10px;
   box-sizing: border-box;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
 }
-
-.panel {
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.example {
-  background: #0f1724;
-  color: #e6eef8;
-  padding: 12px;
-  border-radius: 6px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 0.95rem;
-  max-height: 60vh;
-}
-
-.actions {
-  margin-top: 12px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-button {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  min-width: 140px;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.file-name {
-  font-size: 0.9rem;
-  color: #333;
-  max-width: calc(100% - 160px);
-  display: inline-block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.loading {
-  color: #2563eb;
-  margin-top: 8px;
-}
-
-.error {
-  color: #b91c1c;
-  margin-top: 8px;
-}
-
-.result pre {
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 6px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.muted {
-  color: #6b7280;
-}
-
-footer {
-  text-align: center;
-  margin-top: 24px;
-  color: #6b7280;
-}
-
-@media (max-width: 600px) {
-  .container { margin: 20px auto; padding: 0 12px; }
-  h1 { font-size: 1.25rem; }
-  .example { font-size: 0.9rem; }
-  .file-name { max-width: 100%; }
-  button { min-width: 0; width: 100%; }
-}
+.title { font-size: 14px; margin: 0 0 6px; }
+.dashboard { background: #f6f7f9; border-radius: 8px; padding: 8px; margin-bottom: 10px; }
+.dashboard-title { font-size: 13px; margin-bottom: 4px; color: #2563eb; }
+.metric { font-size: 12px; margin-bottom: 6px; }
+.group { margin-bottom: 8px; }
+.group-title { font-size: 12px; color:#374151; margin-bottom: 4px; }
+ul { list-style: none; padding: 0; margin: 0; }
+li { font-size: 11.5px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row { margin-bottom: 8px; }
+.actions { display: flex; justify-content: flex-end; }
+button { background: #2563eb; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.loading { color: #2563eb; font-size: 12px; }
+.error { color: #b91c1c; font-size: 12px; }
+.result { color: #064e3b; font-size: 12px; }
+.muted { display:block; margin-top:8px; color:#6b7280; font-size:11px }
+code { font-size:11px }
 </style>

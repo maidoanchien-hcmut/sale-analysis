@@ -22,7 +22,6 @@ const (
 	Port = ":8080"
 )
 
-// configuration variables (computed at startup to support Windows, Linux, mac)
 var (
 	DbPath            string
 	SchemaPath        string
@@ -66,80 +65,103 @@ func main() {
 	os.MkdirAll(DirSample, 0755)
 
 	http.HandleFunc("/api/process", corsMiddleware(handleProcess))
+	http.HandleFunc("/api/dashboard", corsMiddleware(handleDashboard))
 
 	fmt.Printf("Server running at http://localhost%s\n", Port)
 	log.Fatal(http.ListenAndServe(Port, nil))
 }
 
-// initConfig detects runtime paths and executables and allows overrides via env vars
 func initConfig() {
-	// Python command: prefer env override, otherwise try common names
 	if v := os.Getenv("PYTHON_CMD"); v != "" {
 		PythonCmd = v
-	} else {
+		log.Printf("Using PYTHON_CMD from env: %s", PythonCmd)
+		return
+	}
+
+	searchPaths := []string{
+		".",
+		"..",
+		"../..",
+	}
+
+	venvFound := false
+	for _, root := range searchPaths {
+		possiblePythons := []string{
+			filepath.Join(root, ".venv", "Scripts", "python.exe"),
+			filepath.Join(root, ".venv", "bin", "python3"),
+			filepath.Join(root, ".venv", "bin", "python"),
+		}
+
+		for _, p := range possiblePythons {
+			if _, err := os.Stat(p); err == nil {
+				if absPath, err := filepath.Abs(p); err == nil {
+					PythonCmd = absPath
+				} else {
+					PythonCmd = p
+				}
+				venvFound = true
+				log.Printf("Found project root .venv: %s", PythonCmd)
+				break
+			}
+		}
+		if venvFound {
+			break
+		}
+	}
+
+	if !venvFound {
+		log.Println("Project .venv not found. Falling back to system python...")
 		for _, name := range []string{"python3", "python"} {
 			if p, err := exec.LookPath(name); err == nil {
 				PythonCmd = p
 				break
 			}
 		}
-		if PythonCmd == "" {
-			log.Fatal("python executable not found in PATH. Set PYTHON_CMD environment variable if needed.")
+	}
+
+	if PythonCmd == "" {
+		log.Fatal("Python executable not found. Please ensure .venv exists at project root or set PYTHON_CMD.")
+	}
+
+	scriptDir := "./script"
+	if _, err := os.Stat(scriptDir); os.IsNotExist(err) {
+		scriptDir = "../script"
+	}
+
+	ScriptSessionizer = filepath.Join(scriptDir, "sessionizer.py")
+	ScriptAnalyzer = filepath.Join(scriptDir, "session_analyzer.py")
+
+	if v := os.Getenv("DB_PATH"); v != "" {
+		DbPath = v
+	} else {
+		if _, err := os.Stat("./sql"); err == nil {
+			DbPath = "./sql/chat.db"
+		} else {
+			DbPath = "../sql/chat.db"
 		}
 	}
 
-	// Resolve script paths relative to the running executable and common locations
-	exePath, _ := os.Executable()
-	exeDir := filepath.Dir(exePath)
-	candidates := []string{
-		filepath.Join(exeDir, "script"),
-		filepath.Join(exeDir, "..", "script"),
-		"./script",
-	}
-	for _, c := range candidates {
-		if _, err := os.Stat(filepath.Join(c, "sessionizer.py")); err == nil {
-			ScriptSessionizer = filepath.Join(c, "sessionizer.py")
-			ScriptAnalyzer = filepath.Join(c, "session_analyzer.py")
-			break
-		}
-	}
-	if ScriptSessionizer == "" {
-		// fallback to relative paths
-		ScriptSessionizer = "./script/sessionizer.py"
-		ScriptAnalyzer = "./script/session_analyzer.py"
-	}
-
-	// Schema path: env override or common filenames
 	if v := os.Getenv("SCHEMA_PATH"); v != "" {
 		SchemaPath = v
 	} else {
 		if _, err := os.Stat("./sql/schema.sql"); err == nil {
 			SchemaPath = "./sql/schema.sql"
-		} else if _, err := os.Stat("./sql/db.sql"); err == nil {
-			SchemaPath = "./sql/db.sql"
-		} else if _, err := os.Stat(filepath.Join(exeDir, "..", "sql", "schema.sql")); err == nil {
-			SchemaPath = filepath.Join(exeDir, "..", "sql", "schema.sql")
 		} else {
-			SchemaPath = "./sql/schema.sql"
+			SchemaPath = "../sql/schema.sql"
 		}
 	}
 
-	// DB path: env override or default
-	if v := os.Getenv("DB_PATH"); v != "" {
-		DbPath = v
-	} else {
-		DbPath = "./sql/chat.db"
-	}
-
-	// sample dir
 	if v := os.Getenv("SAMPLE_DIR"); v != "" {
 		DirSample = v
 	} else {
-		DirSample = "./json/sample"
+		if _, err := os.Stat("./json/sample"); err == nil {
+			DirSample = "./json/sample"
+		} else {
+			DirSample = "../json/sample"
+		}
 	}
 
-	log.Printf("Configuration: PythonCmd=%s, Sessionizer=%s, Analyzer=%s, Schema=%s, DB=%s, SampleDir=%s",
-		PythonCmd, ScriptSessionizer, ScriptAnalyzer, SchemaPath, DbPath, DirSample)
+	log.Printf("Config: Python=%s, Scripts=%s", PythonCmd, scriptDir)
 }
 
 func handleProcess(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +216,6 @@ func handleProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Analyzer output: %s", analyzedPath)
 
-	// Read analyzed file to get session count and prepare response body
 	analyzedData, err := os.ReadFile(analyzedPath)
 	if err != nil {
 		log.Printf("Error reading analyzed output: %v", err)
@@ -218,7 +239,6 @@ func handleProcess(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Import completed: %d sessions imported from %s", len(sessions), analyzedPath)
 
-	// 6. Return Data (use already-read bytes)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(analyzedData)
 }
@@ -408,4 +428,98 @@ func jsonResponse(w http.ResponseWriter, code int, success bool, msg string, dat
 		"message": msg,
 		"data":    data,
 	})
+}
+
+func handleDashboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	db, err := sql.Open("sqlite3", DbPath)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, false, "Database open failed", err.Error())
+		return
+	}
+	defer db.Close()
+
+	// Totals
+	totalSessions := queryCount(db, `SELECT COUNT(*) FROM fact_sessions`)
+
+	// Breakdown: sessions by customer type
+	custBreakdown := queryGroupedCounts(db, `
+		SELECT c.customer_type, COUNT(*) as cnt
+		FROM fact_sessions fs
+		JOIN dim_customers c ON fs.customer_id = c.customer_id
+		GROUP BY c.customer_type
+		ORDER BY cnt DESC, c.customer_type ASC
+	`)
+
+	// Breakdown: sessions by outcomes
+	outcomeBreakdown := queryGroupedCounts(db, `
+		SELECT o.outcome_code, COUNT(*) as cnt
+		FROM fact_sessions fs
+		JOIN dim_outcomes o ON fs.outcome_id = o.outcome_id
+		GROUP BY o.outcome_code
+		ORDER BY cnt DESC, o.outcome_code ASC
+	`)
+
+	// Breakdown: sessions by quality
+	qualityBreakdown := queryGroupedCounts(db, `
+		SELECT q.quality_code, COUNT(*) as cnt
+		FROM fact_sessions fs
+		JOIN dim_quality q ON fs.quality_id = q.quality_id
+		GROUP BY q.quality_code
+		ORDER BY cnt DESC, q.quality_code ASC
+	`)
+
+	// Breakdown: sessions by risk
+	riskBreakdown := queryGroupedCounts(db, `
+		SELECT r.risk_code, COUNT(*) as cnt
+		FROM fact_sessions fs
+		JOIN dim_risks r ON fs.risk_id = r.risk_id
+		GROUP BY r.risk_code
+		ORDER BY cnt DESC, r.risk_code ASC
+	`)
+
+	resp := map[string]interface{}{
+		"total_sessions":            totalSessions,
+		"sessions_by_customer_type": custBreakdown,
+		"sessions_by_outcome":       outcomeBreakdown,
+		"sessions_by_quality":       qualityBreakdown,
+		"sessions_by_risk":          riskBreakdown,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func queryCount(db *sql.DB, query string) int {
+	var n int
+	row := db.QueryRow(query)
+	if err := row.Scan(&n); err != nil {
+		return 0
+	}
+	return n
+}
+
+func queryGroupedCounts(db *sql.DB, query string) map[string]int {
+	rows, err := db.Query(query)
+	if err != nil {
+		return map[string]int{}
+	}
+	defer rows.Close()
+
+	res := make(map[string]int)
+	for rows.Next() {
+		var key string
+		var count int
+		if err := rows.Scan(&key, &count); err == nil {
+			if key == "" {
+				key = "(empty)"
+			}
+			res[key] = count
+		}
+	}
+	return res
 }
