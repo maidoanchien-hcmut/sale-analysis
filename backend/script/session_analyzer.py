@@ -10,11 +10,9 @@ from typing import Literal, Optional
 from dotenv import load_dotenv
 import sys
 
-from sessionizer import process_chat_file
-
 load_dotenv()
 
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "gemini-3-flash-preview"
 
 
 class SessionAnalysis(BaseModel):
@@ -105,151 +103,215 @@ Customer: "Ok cảm ơn Thảo."
 def analyze_single_session():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', nargs='?',
-                        help="Path to raw chat JSON (with messages)")
+                        help="Path to raw chat JSON (with messages) or '-' to read a single session from stdin")
     args = parser.parse_args()
 
-    input_path = args.input_file
-
-    if not input_path:
-        print("Please provide the path to a raw chat JSON file.", file=sys.stderr)
-        sys.exit(2)
-
-    if not os.path.exists(input_path):
-        print(f"Input file not found: {input_path}", file=sys.stderr)
-        sys.exit(1)
-
-    sessions = process_chat_file(input_path)
-    if sessions is None:
-        print("Invalid input or failed to sessionize.", file=sys.stderr)
-        sys.exit(1)
-
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.normpath(os.path.join(
-        script_dir, '..', 'json', 'analyzed'))
-    os.makedirs(output_dir, exist_ok=True)
-
-    base_name = os.path.basename(input_path)
-    name, ext = os.path.splitext(base_name)
-    if not ext:
-        ext = '.json'
-
-    candidate = f"{name}_analyzed{ext}"
-    output_path = os.path.join(output_dir, candidate)
-
-    if os.path.exists(output_path):
-        count = 0
-        while True:
-            candidate = f"{name}_analyzed_{count}{ext}"
-            candidate_path = os.path.join(output_dir, candidate)
-            if not os.path.exists(candidate_path):
-                output_path = candidate_path
-                break
-            count += 1
-
     api_key = os.getenv("GOOGLE_API_KEY", "your_api_key_here")
-
     if api_key == "your_api_key_here":
         print("PLEASE SET YOUR GOOGLE_API_KEY IN THE .env FILE OR ENVIRONMENT VARIABLES.", file=sys.stderr)
-
     client = Client(api_key=api_key)
 
-    customer_state = {
-        "is_customer": False,
-        "purchase_count": 0,
-        "has_complained": False
-    }
+    if args.input_file == '-':
+        try:
+            session = json.load(sys.stdin)
+        except Exception as e:
+            print(f"Invalid session JSON from stdin: {e}", file=sys.stderr)
+            sys.exit(1)
 
-    print(f"Loaded {len(sessions)} sessions for analysis.", file=sys.stderr)
+        msgs = session.get('messages', [])
+        initiator = msgs[0]['sender_name'] if msgs else "unknown"
+        chat_content = "\n".join(
+            [f"[{m.get('sender_name')}]: {m.get('content')}" for m in msgs])
 
-    first = True
-    try:
-        with open(output_path, 'w', encoding='utf-8') as out:
-            out.write('[\n')
+        metrics = calculate_session_metrics(session)
 
-            for i, session in enumerate(sessions):
-                sid = session.get('session_id', f'sess_{i}')
-                print(f"[{i+1}/{len(sessions)}] Analyzing {sid}...",
-                      end="", file=sys.stderr)
+        customer_state = {
+            "is_customer": False,
+            "purchase_count": 0,
+            "has_complained": False
+        }
 
-                metrics = calculate_session_metrics(session)
+        user_prompt = f"""
+        PHIÊN HIỆN TẠI:
+        - Session ID: {session.get('session_id', 'sess')}
+        - Initiator: {initiator}
+        - Chat Log:
+        {chat_content}
+        """
 
-                msgs = session.get('messages', [])
-                initiator = msgs[0]['sender_name'] if msgs else "unknown"
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    response_schema=SessionAnalysis,
+                    temperature=0.2,
+                )
+            )
+            if not response.parsed:
+                print("Failed to parse response.", file=sys.stderr)
+                sys.exit(2)
 
-                chat_content = "\n".join(
-                    [f"[{m.get('sender_name')}]: {m.get('content')}" for m in msgs])
+            audit_data = response.parsed.model_dump()
+            if "won_" in audit_data['outcome'] or audit_data.get('customer_status_update') == "has_purchased":
+                customer_state['is_customer'] = True
+                customer_state['purchase_count'] += 1
+            if "complaint" in audit_data['customer_type'] or "lost_service" in audit_data['outcome']:
+                customer_state['has_complained'] = True
+            audit_data['customer_context'] = customer_state.copy()
 
-                user_prompt = f"""
-                CONTEXT KHÁCH HÀNG (Lũy kế):
-                - Đã mua hàng: {"CÓ" if customer_state['is_customer'] else "KHÔNG"} ({customer_state['purchase_count']} đơn)
-                - Đã khiếu nại: {"CÓ" if customer_state['has_complained'] else "KHÔNG"}
+            combined = {
+                **audit_data,
+                "metrics": metrics,
+                "meta": {
+                    "start_time": session.get('start_time'),
+                    "end_time": session.get('end_time'),
+                    "msg_count": session.get('message_count'),
+                },
+            }
+            print(json.dumps(combined, ensure_ascii=False))
+            return
+        except Exception as e:
+            print(f"Error during analysis: {e}", file=sys.stderr)
+            sys.exit(3)
 
-                PHIÊN HIỆN TẠI:
-                - Session ID: {sid}
-                - Initiator: {initiator}
-                - Chat Log:
-                {chat_content}
-                """
+    # Legacy batch processing mode (disabled)
 
-                try:
-                    response = client.models.generate_content(
-                        model=MODEL_NAME,
-                        contents=user_prompt,
-                        config=types.GenerateContentConfig(
-                            system_instruction=SYSTEM_PROMPT,
-                            response_mime_type="application/json",
-                            response_schema=SessionAnalysis,
-                            temperature=0.2,
-                        )
-                    )
+    # input_path = args.input_file
+    # if not input_path:
+    #     print("Please provide the path to a raw chat JSON file.", file=sys.stderr)
+    #     sys.exit(2)
+    # if not os.path.exists(input_path):
+    #     print(f"Input file not found: {input_path}", file=sys.stderr)
+    #     sys.exit(1)
 
-                    if response.parsed:
-                        audit_data = response.parsed.model_dump()
+    # sessions = process_chat_file(input_path)
+    # if sessions is None:
+    #     print("Invalid input or failed to sessionize.", file=sys.stderr)
+    #     sys.exit(1)
 
-                        if "won_" in audit_data['outcome']:
-                            customer_state['is_customer'] = True
-                            customer_state['purchase_count'] += 1
+    # script_dir = os.path.dirname(os.path.abspath(__file__))
+    # output_dir = os.path.normpath(os.path.join(
+    #     script_dir, '..', 'json', 'analyzed'))
+    # os.makedirs(output_dir, exist_ok=True)
 
-                        if audit_data['customer_status_update'] == "has_purchased":
-                            customer_state['is_customer'] = True
-                            customer_state['purchase_count'] += 1
+    # base_name = os.path.basename(input_path)
+    # name, ext = os.path.splitext(base_name)
+    # if not ext:
+    #     ext = '.json'
 
-                        if "complaint" in audit_data['customer_type'] or "lost_service" in audit_data['outcome']:
-                            customer_state['has_complained'] = True
+    # candidate = f"{name}_analyzed{ext}"
+    # output_path = os.path.join(output_dir, candidate)
 
-                        audit_data['customer_context'] = customer_state.copy()
+    # if os.path.exists(output_path):
+    #     count = 0
+    #     while True:
+    #         candidate = f"{name}_analyzed_{count}{ext}"
+    #         candidate_path = os.path.join(output_dir, candidate)
+    #         if not os.path.exists(candidate_path):
+    #             output_path = candidate_path
+    #             break
+    #         count += 1
 
-                        combined_data = {
-                            **audit_data,
-                            "metrics": metrics,
-                            "meta": {
-                                "start_time": session['start_time'],
-                                "end_time": session['end_time'],
-                                "msg_count": session['message_count']
-                            }
-                        }
+    # customer_state = {
+    #     "is_customer": False,
+    #     "purchase_count": 0,
+    #     "has_complained": False
+    # }
 
-                        if not first:
-                            out.write(',\n')
-                        json.dump(combined_data, out, ensure_ascii=False)
-                        first = False
+    # print(f"Loaded {len(sessions)} sessions for analysis.", file=sys.stderr)
 
-                        print("\tDone", file=sys.stderr)
-                    else:
-                        print("Failed to parse response.", file=sys.stderr)
-                except Exception as e:
-                    print(f"Error during analysis: {e}", file=sys.stderr)
-                    if "429" in str(e):
-                        print("Rate limited. Waiting...", file=sys.stderr)
-                        time.sleep(10)
-                time.sleep(1)
+    # first = True
+    # try:
+    #     with open(output_path, 'w', encoding='utf-8') as out:
+    #         out.write('[\n')
 
-            out.write('\n]\n')
-    except Exception as e:
-        print(f"Error: Failed to write output file: {e}", file=sys.stderr)
-        sys.exit(1)
+    #         for i, session in enumerate(sessions):
+    #             sid = session.get('session_id', f'sess_{i}')
+    #             print(f"[{i+1}/{len(sessions)}] Analyzing {sid}...",
+    #                   end="", file=sys.stderr)
 
-    print(output_path)
+    #             metrics = calculate_session_metrics(session)
+
+    #             msgs = session.get('messages', [])
+    #             initiator = msgs[0]['sender_name'] if msgs else "unknown"
+
+    #             chat_content = "\n".join(
+    #                 [f"[{m.get('sender_name')}]: {m.get('content')}" for m in msgs])
+
+    #             user_prompt = f"""
+    #             CONTEXT KHÁCH HÀNG (Lũy kế):
+    #             - Đã mua hàng: {"CÓ" if customer_state['is_customer'] else "KHÔNG"} ({customer_state['purchase_count']} đơn)
+    #             - Đã khiếu nại: {"CÓ" if customer_state['has_complained'] else "KHÔNG"}
+
+    #             PHIÊN HIỆN TẠI:
+    #             - Session ID: {sid}
+    #             - Initiator: {initiator}
+    #             - Chat Log:
+    #             {chat_content}
+    #             """
+
+    #             try:
+    #                 response = client.models.generate_content(
+    #                     model=MODEL_NAME,
+    #                     contents=user_prompt,
+    #                     config=types.GenerateContentConfig(
+    #                         system_instruction=SYSTEM_PROMPT,
+    #                         response_mime_type="application/json",
+    #                         response_schema=SessionAnalysis,
+    #                         temperature=0.2,
+    #                     )
+    #                 )
+
+    #                 if response.parsed:
+    #                     audit_data = response.parsed.model_dump()
+
+    #                     if "won_" in audit_data['outcome']:
+    #                         customer_state['is_customer'] = True
+    #                         customer_state['purchase_count'] += 1
+
+    #                     if audit_data['customer_status_update'] == "has_purchased":
+    #                         customer_state['is_customer'] = True
+    #                         customer_state['purchase_count'] += 1
+
+    #                     if "complaint" in audit_data['customer_type'] or "lost_service" in audit_data['outcome']:
+    #                         customer_state['has_complained'] = True
+
+    #                     audit_data['customer_context'] = customer_state.copy()
+
+    #                     combined_data = {
+    #                         **audit_data,
+    #                         "metrics": metrics,
+    #                         "meta": {
+    #                             "start_time": session['start_time'],
+    #                             "end_time": session['end_time'],
+    #                             "msg_count": session['message_count']
+    #                         }
+    #                     }
+
+    #                     if not first:
+    #                         out.write(',\n')
+    #                     json.dump(combined_data, out, ensure_ascii=False)
+    #                     first = False
+
+    #                     print("\tDone", file=sys.stderr)
+    #                 else:
+    #                     print("Failed to parse response.", file=sys.stderr)
+    #             except Exception as e:
+    #                 print(f"Error during analysis: {e}", file=sys.stderr)
+    #                 if "429" in str(e):
+    #                     print("Rate limited. Waiting...", file=sys.stderr)
+    #                     time.sleep(10)
+    #             time.sleep(1)
+
+    #         out.write('\n]\n')
+    # except Exception as e:
+    #     print(f"Error: Failed to write output file: {e}", file=sys.stderr)
+    #     sys.exit(1)
+
+    # print(output_path)
 
 
 def calculate_session_metrics(session):

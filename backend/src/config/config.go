@@ -8,12 +8,11 @@ import (
 )
 
 var (
-	DbPath            string
-	SchemaPath        string
-	DirUpload         string
-	PythonCmd         string
-	ScriptSessionizer string
-	ScriptAnalyzer    string
+	DbPath         string
+	SchemaPath     string
+	DirUpload      string
+	PythonCmd      string
+	ScriptAnalyzer string
 )
 
 func Init() {
@@ -72,7 +71,6 @@ func Init() {
 		scriptDir = "../script"
 	}
 
-	ScriptSessionizer = filepath.Join(scriptDir, "sessionizer.py")
 	ScriptAnalyzer = filepath.Join(scriptDir, "session_analyzer.py")
 
 	if v := os.Getenv("DB_PATH"); v != "" {

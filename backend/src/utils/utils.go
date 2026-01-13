@@ -51,6 +51,33 @@ func RunPythonScript(scriptPath, inputPath string) (string, error) {
 	return "", errors.New("could not find output path in python script output")
 }
 
+// CallPythonAnalyze executes the Python analyzer script, sending a single session JSON via stdin
+// and returning the analyzed JSON from stdout.
+func CallPythonAnalyze(scriptPath string, sessionPayload []byte) ([]byte, error) {
+	cmd := exec.Command(config.PythonCmd, scriptPath, "-")
+	cmd.Stdin = bytes.NewReader(sessionPayload)
+
+	// Ensure UTF-8 stdio for Python on Windows
+	env := os.Environ()
+	env = append(env, "PYTHONIOENCODING=utf-8")
+	env = append(env, "PYTHONUTF8=1")
+	cmd.Env = env
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("python analyze failed: %v | stderr: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	out := stdout.Bytes()
+	if len(out) == 0 {
+		return nil, errors.New("empty stdout from analyzer")
+	}
+	return out, nil
+}
+
 func ValidateJSONFormat(filePath string) bool {
 	file, err := os.Open(filePath)
 	if err != nil {

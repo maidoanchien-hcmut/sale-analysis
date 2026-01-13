@@ -11,11 +11,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"sale-analysis-backend/src/config"
 	"sale-analysis-backend/src/database"
 	"sale-analysis-backend/src/models"
+	"sale-analysis-backend/src/pipeline"
 	"sale-analysis-backend/src/utils"
 )
 
@@ -32,7 +34,7 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Prepare destination path
+	// Save upload streaming while hashing
 	timestamp := time.Now().Unix()
 	origName := "upload.json"
 	if header != nil && header.Filename != "" {
@@ -41,12 +43,13 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 	filename := fmt.Sprintf("upload_%d.json", timestamp)
 	inputPath := filepath.Join(config.DirUpload, filename)
 
-	// Stream to disk while hashing to avoid keeping the whole file in memory
 	dst, err := os.Create(inputPath)
 	if err != nil {
 		utils.JSONResponse(w, http.StatusInternalServerError, false, "Error creating file", err.Error())
 		return
 	}
+	// Ensure input file is cleaned up after use
+	defer func() { _ = os.Remove(inputPath) }()
 	defer dst.Close()
 
 	hasher := sha256.New()
@@ -57,7 +60,7 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	hashHex := hex.EncodeToString(hasher.Sum(nil))
 
-	// Duplicate check; if duplicate, remove the saved file
+	// Duplicate check
 	db, err := sql.Open("sqlite3", config.DbPath)
 	if err == nil {
 		defer db.Close()
@@ -77,40 +80,144 @@ func HandleProcess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if db != nil {
-		_, err := db.Exec("INSERT OR IGNORE INTO processed_uploads (file_hash, file_name) VALUES (?, ?)", hashHex, origName)
-		if err != nil {
-			log.Printf("Warning: failed to record upload hash: %v", err)
+	// NOTE: Do not record processed_uploads yet. We only record after successful DB import.
+
+	// Sessionize in Go
+	sessions, err := pipeline.Sessionize(inputPath, 24)
+	if err != nil {
+		utils.JSONResponse(w, http.StatusInternalServerError, false, "Sessionize failed", err.Error())
+		return
+	}
+	log.Printf("Sessionized: %d sessions", len(sessions))
+
+	// Analyze via Python per session with a small worker pool
+	script := config.ScriptAnalyzer
+	anOutName := fmt.Sprintf("%s_analyzed.json", filename)
+	anOutPath := filepath.Join("./json/analyzed")
+	if _, err := os.Stat(anOutPath); os.IsNotExist(err) {
+		anOutPath = filepath.Join("../json/analyzed")
+	}
+	if err := os.MkdirAll(anOutPath, 0755); err != nil {
+		utils.JSONResponse(w, http.StatusInternalServerError, false, "Failed to prepare output dir", err.Error())
+		return
+	}
+	finalPath := filepath.Join(anOutPath, anOutName)
+
+	outFile, err := os.Create(finalPath)
+	if err != nil {
+		utils.JSONResponse(w, http.StatusInternalServerError, false, "Failed to create analyzed file", err.Error())
+		return
+	}
+	// Ensure analyzed file is cleaned up after completing the request
+	defer func() { _ = os.Remove(finalPath) }()
+	defer outFile.Close()
+
+	// Stream JSON array
+	outFile.Write([]byte("[\n"))
+
+	type job struct {
+		Index  int
+		Sess   pipeline.Session
+		Result []byte
+		Err    error
+	}
+
+	jobs := make(chan job)
+	results := make(chan job)
+	var wg sync.WaitGroup
+	workers := 1 // process sequentially to avoid API rate limits and match previous reliable behavior
+
+	worker := func() {
+		defer wg.Done()
+		for j := range jobs {
+			payload, _ := json.Marshal(j.Sess)
+			var res []byte
+			var err error
+			for attempt := 0; attempt < 3; attempt++ {
+				res, err = utils.CallPythonAnalyze(script, payload)
+				if err == nil {
+					break
+				}
+				// backoff: 1s, 3s, 7s
+				delay := []time.Duration{time.Second, 3 * time.Second, 7 * time.Second}
+				if attempt < len(delay) {
+					time.Sleep(delay[attempt])
+				}
+			}
+			j.Err = err
+			j.Result = res
+			results <- j
 		}
 	}
 
-	// Analyzer now sessionizes in-memory; call it directly with the raw input
-	log.Printf("Running Analyzer on raw input %s...", inputPath)
-	analyzedPath, err := utils.RunPythonScript(config.ScriptAnalyzer, inputPath)
-	if err != nil {
-		log.Printf("Analyzer Error: %v", err)
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Analyzer failed", err.Error())
-		return
+	wg.Add(workers)
+	for i := 0; i < workers; i++ {
+		go worker()
 	}
-	log.Printf("Analyzer output: %s", analyzedPath)
 
-	// Import to DB using a streaming decoder to reduce memory
-	if err := importToDB(analyzedPath); err != nil {
-		log.Printf("Database import error: %v", err)
+	go func() {
+		for i, s := range sessions {
+			jobs <- job{Index: i, Sess: s}
+		}
+		close(jobs)
+	}()
+
+	received := 0
+	first := true
+	for received < len(sessions) {
+		j := <-results
+		received++
+		if j.Err != nil {
+			// Fail fast: do not drop or synthesize; stop and return error
+			log.Printf("Analyze failed for session %d: %v", j.Index, j.Err)
+			outFile.Close()
+			_ = os.Remove(finalPath)
+			utils.JSONResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Analyzer failed at session %d", j.Index), j.Err.Error())
+			return
+		}
+		if !first {
+			outFile.Write([]byte(",\n"))
+		}
+		outFile.Write(j.Result)
+		first = false
+	}
+	wg.Wait()
+	outFile.Write([]byte("\n]\n"))
+
+	// Import analyzed JSON
+	if err := importToDB(finalPath); err != nil {
 		utils.JSONResponse(w, http.StatusInternalServerError, false, "Database import failed", err.Error())
 		return
 	}
 
-	// Return the analyzed JSON back to client (read as bytes for response)
-	analyzedData, err := os.ReadFile(analyzedPath)
+	// Now mark this hash as successfully processed so duplicates are blocked next time
+	func() {
+		if db != nil {
+			if _, e := db.Exec("INSERT OR IGNORE INTO processed_uploads (file_hash, file_name) VALUES (?, ?)", hashHex, origName); e != nil {
+				log.Printf("Warning: failed to record upload hash after import: %v", e)
+			}
+			return
+		}
+		// Fallback: open a new connection
+		db2, e := sql.Open("sqlite3", config.DbPath)
+		if e != nil {
+			log.Printf("Warning: cannot open DB to record upload hash: %v", e)
+			return
+		}
+		defer db2.Close()
+		if _, e = db2.Exec("INSERT OR IGNORE INTO processed_uploads (file_hash, file_name) VALUES (?, ?)", hashHex, origName); e != nil {
+			log.Printf("Warning: failed to record upload hash after import: %v", e)
+		}
+	}()
+
+	// Return analyzed JSON
+	data, err := os.ReadFile(finalPath)
 	if err != nil {
-		log.Printf("Error reading analyzed output: %v", err)
-		utils.JSONResponse(w, http.StatusInternalServerError, false, "Failed to read analyzer output", err.Error())
+		utils.JSONResponse(w, http.StatusInternalServerError, false, "Failed to read analyzed output", err.Error())
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(analyzedData)
+	w.Write(data)
 }
 
 func HandleDashboard(w http.ResponseWriter, r *http.Request) {
@@ -252,17 +359,6 @@ func importToDB(jsonPath string) error {
 	}
 
 	return tx.Commit()
-}
-
-// Legacy helper funcs retained if used elsewhere
-func queryCount(db *sql.DB, query string) int {
-	var count int
-	err := db.QueryRow(query).Scan(&count)
-	if err != nil {
-		log.Printf("Error executing query: %v", err)
-		return 0
-	}
-	return count
 }
 
 func queryGroupedCounts(db *sql.DB, query string) map[string]int {

@@ -27,7 +27,6 @@ func Init() {
 	if err != nil {
 		log.Fatal("Database initialization failed:", err)
 	}
-	// Create processed_uploads table if not exists (for duplicate detection)
 	_, _ = db.Exec(`
 		CREATE TABLE IF NOT EXISTS processed_uploads (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
