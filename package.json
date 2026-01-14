@@ -1,0 +1,20 @@
+{
+    "name": "sale-analysis",
+    "private": true,
+    "workspaces": [
+        "apps/*"
+    ],
+    "scripts": {
+        "dev": "concurrently -n \"FRONT,BACK,LLM\" -c \"bgBlue.bold,bgMagenta.bold,bgYellow.bold\" \"bun run dev:front\" \"bun run dev:back\" \"bun run dev:llm\"",
+        "dev:front": "bun run --filter frontend dev",
+        "dev:back": "bun run --filter backend dev",
+        "dev:llm": "uv --directory services/llm-engine run fastapi dev main.py",
+        "db:generate": "bun run --filter backend db:generate",
+        "db:push": "bun run --filter backend db:push",
+        "db:studio": "bun run --filter backend db:studio",
+        "scrape": "bun run --filter backend scrape"
+    },
+    "devDependencies": {
+        "concurrently": "^9.2.1"
+    }
+}
