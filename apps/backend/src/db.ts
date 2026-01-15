@@ -13,7 +13,11 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-const sqliteDbPath = process.env.SQLITE_DB_PATH ?? "db/production.db";
+// IMPORTANT:
+// - Use BACKEND_SQLITE_DB_PATH for Bun backend (path relative to apps/backend or absolute)
+// - Keep SQLITE_DB_PATH for Python LLM (resolved relative to repo root)
+const sqliteDbPath =
+    process.env.BACKEND_SQLITE_DB_PATH ?? process.env.SQLITE_DB_PATH ?? "db/production.db";
 const sqlite = new Database(sqliteDbPath);
 
 export const db = drizzle(sqlite, {

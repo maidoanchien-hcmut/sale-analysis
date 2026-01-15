@@ -9,146 +9,102 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
 import { runScraper } from "./src/scraper";
-import { db } from "./src/db";
-import { conversations, messages, dimPlatformTags } from "./src/schema_operational";
-import { factChatAudit } from "./src/schema_warehouse";
-import { sql, eq, asc } from "drizzle-orm";
+import { analyticsRoutes } from "./src/analytics-routes";
 
-const app = new Elysia();
-const PYTHON_API = process.env.PYTHON_API ?? "http://localhost:8000/analyze";
-const ANALYSIS_THRESHOLD = Number(process.env.ANALYSIS_THRESHOLD ?? 25);
-const SKIP_SCRAPER = (process.env.SKIP_SCRAPER ?? "").toLowerCase() === "1";
-const DRY_RUN = (process.env.DRY_RUN ?? "").toLowerCase() === "1";
+// Configuration
+const PYTHON_SERVICE_URL =
+    process.env.PYTHON_SERVICE_URL ??
+    process.env.PYTHON_API?.replace(/\/analyze$/, "") ??
+    "http://localhost:8000";
+const PORT = Number(process.env.BACKEND_PORT ?? process.env.PORT ?? 3000);
 
-async function getTranscriptDelta(convId: string, lastMsgId: string | null) {
-    const allMsgs = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.conversationId, convId))
-        .orderBy(asc(messages.insertedAt));
+const app = new Elysia()
+    .use(cors())
+    .use(analyticsRoutes)
 
-    if (allMsgs.length === 0) return null;
+    // Health Check
+    .get("/", () => ({ status: "Backend API is running", timestamp: new Date().toISOString() }))
 
-    let deltaMsgs = allMsgs;
+    // Trigger the TypeScript Scraper (Pancake -> SQLite)
+    // Runs asynchronously to prevent blocking the API request.
+    .post("/control/scrape", async () => {
+        console.log("Received manual scrape trigger...");
 
-    if (lastMsgId) {
-        const lastIndex = allMsgs.findIndex((m) => m.id === lastMsgId);
-        if (lastIndex !== -1 && lastIndex < allMsgs.length - 1) {
-            deltaMsgs = allMsgs.slice(lastIndex + 1);
-        } else if (lastIndex === allMsgs.length - 1) {
-            return null;
-        }
-    }
+        setTimeout(() => {
+            runScraper()
+                .then(() => console.log("Scrape completed successfully."))
+                .catch((err) => console.error("Scraper execution failed:", err));
+        }, 0);
 
-    const transcript = deltaMsgs
-        .map((m) => `[${m.insertedAt}] ${m.senderName}: ${m.content}`)
-        .join("\n");
+        return { message: "Scraper process started in background" };
+    })
 
-    return {
-        text: transcript,
-        lastId: deltaMsgs.at(-1)!.id,
-    };
-}
-
-app.post("/pipeline/run", async () => {
-    console.log("Triggering Pipeline...");
-
-    if (!SKIP_SCRAPER) {
-        await runScraper();
-    } else {
-        console.log("Skipping scraper (SKIP_SCRAPER=1)");
-    }
-
-    const availableTags = await db
-        .select({ id: dimPlatformTags.id, name: dimPlatformTags.name })
-        .from(dimPlatformTags);
-
-    // Only analyze conversations that have accumulated enough NEW messages since last analysis
-    const candidates = await db
-        .select()
-        .from(conversations)
-        .where(
-            sql`${conversations.messageCountTotal} - ${conversations.lastAnalyzedMessageCount} >= ${ANALYSIS_THRESHOLD}`
-        );
-
-    console.log(
-        `Found ${candidates.length} conversations to analyze (threshold=${ANALYSIS_THRESHOLD}).`
-    );
-
-    for (const conv of candidates) {
-        const delta = await getTranscriptDelta(conv.id, conv.lastAnalyzedMessageId);
-
-        if (!delta) {
-            await db
-                .update(conversations)
-                .set({ lastAnalyzedMessageCount: conv.messageCountTotal })
-                .where(eq(conversations.id, conv.id));
-            continue;
-        }
+    // Trigger the Python analyzer service
+    .post("/control/analyze", async () => {
+        const url = `${PYTHON_SERVICE_URL.replace(/\/$/, "")}/trigger-analysis`;
+        console.log(`Triggering Analyzer at ${url}...`);
 
         try {
-            console.log(`Analyzing ${conv.id}...`);
+            const response = await fetch(url, { method: "POST" });
 
-            if (DRY_RUN) {
-                console.log(`DRY_RUN=1, not calling LLM and not writing results for ${conv.id}.`);
-                continue;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Python service responded ${response.status}: ${errorText}`);
             }
 
-            const response = await fetch(PYTHON_API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    transcript_delta: delta.text,
-                    previous_summary: conv.contextSummary || "",
-                    available_tags: availableTags,
+            return await response.json();
+        } catch (error: any) {
+            console.error("Analyzer trigger failed:", error);
+            return new Response(
+                JSON.stringify({
+                    error: "Failed to connect to LLM Engine",
+                    details: error?.message ?? String(error),
                 }),
-            });
-
-            if (!response.ok) throw new Error("Python API Failed");
-            const result = (await response.json()) as any;
-
-            await db
-                .insert(factChatAudit)
-                .values({
-                    conversationId: conv.id,
-                    primaryStaffId: "unknown",
-                    sentimentLabel: result.sentiment_label,
-                    riskLevel: result.risk_level,
-                    repQualityLabel: result.rep_quality,
-                    userIntent: result.user_intent,
-                    auditEvidenceJson: JSON.stringify(result.audit_evidence),
-                    competitorsMentioned: "[]",
-                    updatedAt: new Date().toISOString(),
-                })
-                .onConflictDoUpdate({
-                    target: factChatAudit.conversationId,
-                    set: {
-                        sentimentLabel: sql`excluded.sentiment_label`,
-                        riskLevel: sql`excluded.risk_level`,
-                        auditEvidenceJson: sql`excluded.audit_evidence_json`,
-                        updatedAt: sql`excluded.updated_at`,
-                    },
-                });
-
-            await db
-                .update(conversations)
-                .set({
-                    lastAnalyzedAt: new Date().toISOString(),
-                    lastAnalyzedMessageCount: conv.messageCountTotal,
-                    lastAnalyzedMessageId: delta.lastId,
-                    contextSummary: result.new_summary,
-                })
-                .where(eq(conversations.id, conv.id));
-
-            console.log(`Analyzed ${conv.id}: ${result.sentiment_label}`);
-        } catch (error) {
-            console.error(`Failed to analyze ${conv.id}:`, error);
+                { status: 502, headers: { "Content-Type": "application/json" } }
+            );
         }
-    }
+    })
 
-    return { status: "Success", processed: candidates.length };
-});
+    // Convenience endpoint: run scraper first, then trigger analyzer
+    .post("/control/scrape-and-analyze", async () => {
+        console.log("Received scrape-and-analyze trigger...");
 
-app.listen(Number(process.env.BACKEND_PORT ?? 3000));
-console.log(`Backend is running at ${app.server?.hostname}:${app.server?.port}`);
+        try {
+            await runScraper();
+        } catch (err: any) {
+            console.error("Scraper execution failed:", err);
+            return new Response(
+                JSON.stringify({
+                    error: "Scraper failed",
+                    details: err?.message ?? String(err),
+                }),
+                { status: 500, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        const url = `${PYTHON_SERVICE_URL.replace(/\/$/, "")}/trigger-analysis`;
+
+        try {
+            const response = await fetch(url, { method: "POST" });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Python service responded ${response.status}: ${errorText}`);
+            }
+            return await response.json();
+        } catch (error: any) {
+            console.error("Analyzer trigger failed:", error);
+            return new Response(
+                JSON.stringify({
+                    error: "Failed to connect to LLM Engine",
+                    details: error?.message ?? String(error),
+                }),
+                { status: 502, headers: { "Content-Type": "application/json" } }
+            );
+        }
+    })
+
+    .listen(PORT);
+
+console.log(`Backend API running at http://localhost:${PORT}`);
