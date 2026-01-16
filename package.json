@@ -1,20 +1,25 @@
 {
-    "name": "sale-analysis",
+    "name": "customer-service-qa",
+    "module": "index.ts",
+    "type": "module",
     "private": true,
-    "workspaces": [
-        "apps/*"
-    ],
     "scripts": {
-        "dev": "concurrently -n \"FRONT,BACK,LLM\" -c \"bgBlue.bold,bgMagenta.bold,bgYellow.bold\" \"bun run dev:front\" \"bun run dev:back\" \"bun run dev:llm\"",
-        "dev:front": "bun run --filter frontend dev",
-        "dev:back": "bun run --filter backend dev",
-        "dev:llm": "uv --directory services/llm-engine run fastapi dev main.py",
-        "db:generate": "bun run --filter backend db:generate",
-        "db:push": "bun run --filter backend db:push",
-        "db:studio": "bun run --filter backend db:studio",
-        "scrape": "bun run --filter backend scrape"
+        "dev": "bun run --cwd backend dev",
+        "dev:frontend": "bun run --cwd frontend dev",
+        "dev:llm": "cd llm-service && uv run python main.py",
+        "db:push": "bun run --cwd backend db:push",
+        "db:studio": "bun run --cwd backend db:studio",
+        "db:clean": "bun run --cwd backend db:clean",
+        "db:clean-analysis": "bun run backend/src/scripts/clean-analysis.ts",
+        "scrape": "bun run --cwd backend scrape",
+        "analyze": "curl -X POST http://localhost:8000/analyze",
+        "pipeline": "bun run scrape && bun run analyze",
+        "install:all": "bun install && cd backend && bun install && cd ../frontend && bun install && cd ../llm-service && uv sync"
     },
     "devDependencies": {
-        "concurrently": "^9.2.1"
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
     }
 }

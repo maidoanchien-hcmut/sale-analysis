@@ -33,13 +33,13 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
-# Vertex AI service account key file
+# SQLite database
+*.db
+
+# Python
+.venv
+__pycache__
+*.pyc
+
+# Service account credentials
 sa.json
-
-# Python cache and virtual environment
-__pycache__/
-*.py[cod]
-.venv/
-
-# My personal notes
-notes.txt

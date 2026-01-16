@@ -1,0 +1,461 @@
+// Get a list of the latest 60 conversations. Put the last_conversation_id parameter to get more conversations.
+// Conversation contains messages of customer service with a single customer.
+
+curl --request GET \
+  --url 'https://pages.fm/api/public_api/v2/pages/{page_id}/conversations?page_access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE0MDY1MzU2OTk2NDI2NzciLCJ0aW1lc3RhbXAiOjE3Njg0NjQ4ODJ9.-W7oJcbMHUbMHMj9XJQatYruRUoFeOy2B5odHsNyIEQ' \
+  --header 'Accept: application/json'
+
+Response:
+{
+    "success": true,
+    "conversations": [
+        {
+            "id": "1406535699642677_29433925569539854",
+            "type": "INBOX",
+            "tags": [
+                {
+                    "color": "#ba2b13",
+                    "id": 54,
+                    "is_lead_event": false,
+                    "lighten_color": "rgba(186,43,19,0.4)",
+                    "text": "H. ANH"
+                }
+            ],
+            "seen": false,
+            "from": {
+                "email": "29433925569539854@facebook.com",
+                "id": "29433925569539854",
+                "name": "Mỹ Anh"
+            },
+            "snippet": "Cho em hỏi chi phí lấy mụn bên mình như thế nào ạ",
+            "inserted_at": "2026-01-15T10:48:00.363819",
+            "updated_at": "2026-01-15T10:48:13.000000",
+            "message_count": 7,
+            "page_id": "1406535699642677",
+            "last_sent_by": {
+                "email": "29433925569539854@facebook.com",
+                "id": "29433925569539854",
+                "name": "Mỹ Anh"
+            },
+            "assignee_ids": [],
+            "customers": [
+                {
+                    "fb_id": "29433925569539854",
+                    "id": "286269e4-6e31-41df-9081-a6f36e222762",
+                    "name": "Mỹ Anh"
+                }
+            ],
+            "post_id": null,
+            "has_phone": false,
+            "recent_phone_numbers": [],
+            "customer_id": "88d07af3-ba96-40d9-92c3-661c86b633e6",
+            "page_customer": {
+                "id": "286269e4-6e31-41df-9081-a6f36e222762",
+                "name": "Mỹ Anh",
+                "inserted_at": "2026-01-15T10:47:59",
+                "customer_id": "88d07af3-ba96-40d9-92c3-661c86b633e6",
+                "psid": "29433925569539854",
+                "gender": "female",
+                "global_id": "100004447749601",
+                "birthday": null,
+                "notes": null,
+                "recent_orders": null
+            },
+            "ads": [],
+            "ad_ids": [],
+            "assignee_histories": [],
+            "current_assign_users": [],
+            "tag_histories": [
+                {
+                    "inserted_at": "2026-01-15T10:48:39.020301",
+                    "payload": {
+                        "action": "add",
+                        "editor_id": "5a00d570-d4d0-44a9-945a-e63c010bf5da",
+                        "editor_name": "An Sale",
+                        "tag": {
+                            "color": "#ba2b13",
+                            "id": 54,
+                            "is_lead_event": false,
+                            "lighten_color": "rgba(186,43,19,0.4)",
+                            "text": "H. ANH"
+                        }
+                    },
+                    "conversation_id": "1406535699642677_29433925569539854"
+                }
+            ]
+        },
+        ...
+    ]
+}
+
+// Retrieve the list of messages in a conversation. Put the current_count parameter to get more messages.
+
+// First query does not need current_count parameter.
+// Second query use current count = message count from the first query.
+curl --request GET \
+  --url 'https://pages.fm/api/public_api/v1/pages/{page_id}/conversations/{conversation_id}/messages?page_access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE0MDY1MzU2OTk2NDI2NzciLCJ0aW1lc3RhbXAiOjE3Njg0NjQ4ODJ9.-W7oJcbMHUbMHMj9XJQatYruRUoFeOy2B5odHsNyIEQ' \
+  --header 'Accept: application/json'
+
+Response:
+{
+  "gender": "female",
+  "suggested_posts": null,
+  "birthday": null,
+  "conv_from": {
+    "email": "7936946113088771@facebook.com",
+    "id": "7936946113088771",
+    "name": "Khanh Ngoc"
+  },
+  "last_commented_at": false,
+  "lives_in": null,
+  "reports_by_phone": {
+    "+84896457314": {
+      "order_fail": 0,
+      "order_success": 0,
+      "warning": 0
+    },
+    "+84903180162": {
+      "order_fail": 0,
+      "order_success": 1,
+      "warning": 0
+    },
+    "+84984286297": {
+      "order_fail": 0,
+      "order_success": 0,
+      "warning": 0
+    }
+  },
+  "success": true,
+  "banned_by": null,
+  "extra_info": {},
+  "conv_phone_numbers": [
+    "0984286297",
+    "0903180162",
+    "0896457314"
+  ],
+  "is_banned": false,
+  "recent_orders": [
+    {
+      "address": "",
+      "commune_id": null,
+      "country_code": null,
+      "district_id": null,
+      "full_address": "",
+      "province_id": null,
+      "viewing": null,
+      "partner": null,
+      "assigning_seller_id": null,
+      "custom_id": null,
+      "display_id": 49987,
+      "email": null,
+      "full_name": "Khanh Ngoc",
+      "id": 90074153462751,
+      "inserted_at": "2024-11-10T10:43:57.837725",
+      "is_locked": false,
+      "last_update_status_at": "2024-11-10T10:43:57",
+      "payment": 0,
+      "phone_number": "0903180162",
+      "received_at_shop": false,
+      "status": 0
+    },
+    {
+      "address": "",
+      "commune_id": null,
+      "country_code": null,
+      "district_id": null,
+      "full_address": "",
+      "province_id": null,
+      "viewing": null,
+      "partner": null,
+      "assigning_seller_id": null,
+      "custom_id": null,
+      "display_id": 41382,
+      "email": null,
+      "full_name": "Khanh Ngoc",
+      "id": 1932404394,
+      "inserted_at": "2024-07-25T05:26:06.316386",
+      "is_locked": false,
+      "last_update_status_at": "2024-07-25T05:26:06",
+      "payment": 0,
+      "phone_number": "0984286297",
+      "received_at_shop": false,
+      "status": 0
+    }
+  ],
+  "app": "63",
+  "global_id": "100073727837102",
+  "activities": [
+    {
+      "ad_id": "120207345070240266",
+      "ads_context_data": {
+        "ad_title": "Quảng cáo Lượt tương tác mới",
+        "photo_url": "https://www.facebook.com/ads/image/?d=AQLSPVjM-B8se-vnIP1P8fZ4xBXomjDRnaRhjOoqXyK0IAHqR0tlbVRtrCcrFm6zAiaAXALLRvYwcP2rvrRnc-rct6HBlXSNYJbTyg1OqyYcwD4x6dkwQrfWVxPngxi6U7P-NE8Pioo43yVyCkvu0LW3",
+        "post_id": "1112263770270253"
+      },
+      "inserted_at": "2025-03-01T08:29:03",
+      "source": "ADS",
+      "type": "OPEN_THREAD"
+    }
+  ],
+  "reported_count": 0,
+  "conversation_id": "1406535699642677_7936946113088771",
+  "available_for_report_phone_numbers": [
+    "+84896457314",
+    "+84903180162",
+    "+84984286297"
+  ],
+  "post": null,
+  "messages": [
+    {
+      "id": "m_VG7h52Yh50Pm-y5gKyHJ4-QJvk-Gy7Nuw9vm4DCYt4_9aj5czlbgGzytTtRL2TAQSb5rWiUvch_YxE3lXWeDxA",
+      "message": "<div>dạ v th e cảm ơn ạ</div>",
+      "type": "INBOX",
+      "seen": false,
+      "show_info": true,
+      "from": {
+        "email": "7936946113088771@facebook.com",
+        "id": "7936946113088771",
+        "name": "Khanh Ngoc"
+      },
+      "inserted_at": "2026-01-11T05:39:28.000000",
+      "page_id": "1406535699642677",
+      "conversation_id": "1406535699642677_7936946113088771",
+      "attachments": [],
+      "has_phone": false,
+      "is_removed": false,
+      "can_hide": false,
+      "comment_count": null,
+      "like_count": null,
+      "parent_id": null,
+      "rich_message": null,
+      "edit_history": null,
+      "is_hidden": false,
+      "message_tags": [],
+      "can_comment": false,
+      "can_like": false,
+      "can_remove": false,
+      "can_reply_privately": false,
+      "is_livestream_order": null,
+      "is_parent": false,
+      "is_parent_hidden": false,
+      "phone_info": [],
+      "private_reply_conversation": null,
+      "removed_by": null,
+      "user_likes": false,
+      "original_message": "dạ v th e cảm ơn ạ"
+    },
+    ...
+],
+"matched_wa_fb_customers": null,
+  "conv_customers": [
+    {
+      "fb_id": "7936946113088771",
+      "id": "766184c1-a0b7-4c9f-94d9-d1191058c1f6",
+      "name": "Khanh Ngoc"
+    }
+  ],
+  "conv_recent_phone_numbers": [
+    {
+      "captured": "0984286297",
+      "length": 10,
+      "m_id": "m_qXjeyEXGcxBAur9Slp8etOQJvk-Gy7Nuw9vm4DCYt49MUVQXc3cogUop-viPAuntC12gEpNgwAuazeh0cLvupg",
+      "offset": 37,
+      "phone_number": "0984286297",
+      "status": 1
+    },
+    {
+      "captured": "0903180162",
+      "length": 10,
+      "m_content": "Dạ 0903180162",
+      "m_id": "m_0iw0NwBV5Huv9Qxh4hMyoeQJvk-Gy7Nuw9vm4DCYt4_NoD8HsdKxE3V4UmB8pZVo2hmLmt-de-PH0oF2MVR9Gw",
+      "offset": 3,
+      "phone_number": "0903180162",
+      "status": 2
+    },
+    {
+      "captured": "0896457314",
+      "length": 10,
+      "m_content": "Chị sửa lại sdt giúp e là số này nha chị 0896457314",
+      "m_id": "m_Tn4E_j3AtCFQjeF8ytFkMuQJvk-Gy7Nuw9vm4DCYt4-fYSIVvFmvKTsMdxLv6X2-g2sv30bjVxLA0S_U7VUAfQ",
+      "offset": 41,
+      "phone_number": "0896457314",
+      "status": 0
+    }
+  ],
+  "customers": [
+    {
+      "ad_clicks": [
+        {
+          "ad_id": "120207345070240266",
+          "inserted_at": "2025-03-01T08:29:03",
+          "post_id": "1406535699642677_1112263770270253"
+        },
+        {
+          "ad_id": "6603811290427",
+          "inserted_at": "2025-06-27T10:18:55",
+          "post_id": "1406535699642677_1216944256468870"
+        },
+        {
+          "ad_id": "120224944221900266",
+          "inserted_at": "2025-09-11T12:28:29",
+          "post_id": "1406535699642677_1276573943839234"
+        },
+        {
+          "ad_id": "6903000321027",
+          "inserted_at": "2025-12-25T11:12:01",
+          "post_id": "1406535699642677_1376193047210656"
+        }
+      ],
+      "address_source": [],
+      "can_inbox": true,
+      "currency": null,
+      "customer_id": "c4f2877f-bf2b-4f63-9d20-acad76501582",
+      "emails": [],
+      "fb_id": "7936946113088771",
+      "global_id": "100073727837102",
+      "id": "766184c1-a0b7-4c9f-94d9-d1191058c1f6",
+      "is_discount_by_level": true,
+      "is_followed": null,
+      "last_order_at": null,
+      "name": "Khanh Ngoc",
+      "order_count": 3,
+      "personal_info": {
+        "job": null,
+        "gender": "female",
+        "lives_in": null,
+        "profile_updated_at": "2025-12-25T11:13:55",
+        "relationship_status": null
+      },
+      "purchased_amount": 0,
+      "recent_phone_numbers": [
+        {
+          "order_id": 90082809284680,
+          "phone_number": "0984286297"
+        },
+        {
+          "order_id": 90074153462751,
+          "phone_number": "0903180162"
+        },
+        {
+          "captured": "0896457314",
+          "length": 10,
+          "m_content": "Chị sửa lại sdt giúp e là số này nha chị 0896457314",
+          "m_id": "m_Tn4E_j3AtCFQjeF8ytFkMuQJvk-Gy7Nuw9vm4DCYt4-fYSIVvFmvKTsMdxLv6X2-g2sv30bjVxLA0S_U7VUAfQ",
+          "offset": 41,
+          "phone_number": "0896457314",
+          "status": 0
+        }
+      ],
+      "reward_point": 0,
+      "shop_customer_addresses": [
+        {
+          "address": null,
+          "commune_id": null,
+          "country_code": null,
+          "district_id": null,
+          "full_address": null,
+          "full_name": "Khanh Ngoc",
+          "id": "f9d0fbc3-3d62-4210-b671-7ddf0c4c7a7a",
+          "phone_number": "0903180162",
+          "post_code": null,
+          "province_id": null
+        },
+        {
+          "address": null,
+          "commune_id": null,
+          "country_code": null,
+          "district_id": null,
+          "full_address": null,
+          "full_name": "Khanh Ngoc",
+          "id": "06ad114b-a15a-40f3-94c4-7e92fa1aa429",
+          "phone_number": "0984286297",
+          "post_code": null,
+          "province_id": null
+        }
+      ],
+      "succeed_order_count": 0,
+      "tags": [],
+      "total_amount_referred": null,
+      "web_sources": []
+    }
+  ],
+  "profile_updated_at": "2025-12-25T11:13:55",
+  "ad_clicks": {
+    "766184c1-a0b7-4c9f-94d9-d1191058c1f6": [
+      {
+        "ad_id": "120207345070240266",
+        "inserted_at": "2025-03-01T08:29:03",
+        "post_id": "1406535699642677_1112263770270253"
+      },
+      {
+        "ad_id": "6603811290427",
+        "inserted_at": "2025-06-27T10:18:55",
+        "post_id": "1406535699642677_1216944256468870"
+      },
+      {
+        "ad_id": "120224944221900266",
+        "inserted_at": "2025-09-11T12:28:29",
+        "post_id": "1406535699642677_1276573943839234"
+      },
+      {
+        "ad_id": "6903000321027",
+        "inserted_at": "2025-12-25T11:12:01",
+        "post_id": "1406535699642677_1376193047210656"
+      }
+    ]
+  },
+  "comment_count": 0,
+  "banned_count": 0,
+  "allow_use_data_for_training_ai": null,
+  "recent_phone_numbers": [
+    "0984286297",
+    "0903180162",
+    "0896457314"
+  ],
+  "can_inbox": true,
+  "read_watermarks": [
+    {
+      "is_group_conv": null,
+      "message_id": "m_d780o1hDtIq8sF3EVlF5J-QJvk-Gy7Nuw9vm4DCYt4-BqTX3YQkNwRXBlas5caIe8om7VA_FGY_w2FfL213U9g",
+      "psid": "7936946113088771",
+      "watermark": 1768474077
+    }
+  ],
+  "notes": [
+    {
+      "created_at": 1723872552403,
+      "created_by": {
+        "application": 1,
+        "fb_id": "122120210642542260",
+        "fb_name": "Mỹ Duyên Sale",
+        "session_id": "7f10cae2-7bbc-401e-87e7-4b73665dc654",
+        "token_for_business": "AbwapcHUghbRcUpl",
+        "uid": "e2df5325-246c-472d-a8e5-2a1c9e850ac3"
+      },
+      "edit_history": [
+        {
+          "created_at": 1723872552403,
+          "created_by": {
+            "application": 1,
+            "fb_id": "1789913271246505",
+            "fb_name": "Thái An",
+            "session_id": "kNQuaSYraJdyorTAskG06GdDJipzJNN9uniXnPQWBwo",
+            "uid": "1cdbd4d1-f4e9-46f8-a00e-ca4fba7a8f9e"
+          },
+          "images": [],
+          "message": "Lý Khánh Ngọc\r\nSố điện thoại\r\n0896457314"
+        }
+      ],
+      "id": "d4777120-3f7c-42ce-9dc4-a9e6d88ed740",
+      "images": [],
+      "links": [],
+      "message": "Lý Khánh Ngọc\r\nSố điện thoại\r\n0984286297 \r\n",
+      "order_id": "90082809284680",
+      "removed_at": null,
+      "updated_at": 1766661364531
+    }
+  ]
+}
+
+
+
