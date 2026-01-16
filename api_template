@@ -2,7 +2,7 @@
 // Conversation contains messages of customer service with a single customer.
 
 curl --request GET \
-  --url 'https://pages.fm/api/public_api/v2/pages/{page_id}/conversations?page_access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE0MDY1MzU2OTk2NDI2NzciLCJ0aW1lc3RhbXAiOjE3Njg0NjQ4ODJ9.-W7oJcbMHUbMHMj9XJQatYruRUoFeOy2B5odHsNyIEQ' \
+  --url 'https://pages.fm/api/public_api/v2/pages/{page_id}/conversations?page_access_token={page_access_token}' \
   --header 'Accept: application/json'
 
 Response:
@@ -93,7 +93,7 @@ Response:
 // First query does not need current_count parameter.
 // Second query use current count = message count from the first query.
 curl --request GET \
-  --url 'https://pages.fm/api/public_api/v1/pages/{page_id}/conversations/{conversation_id}/messages?page_access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE0MDY1MzU2OTk2NDI2NzciLCJ0aW1lc3RhbXAiOjE3Njg0NjQ4ODJ9.-W7oJcbMHUbMHMj9XJQatYruRUoFeOy2B5odHsNyIEQ' \
+  --url 'https://pages.fm/api/public_api/v1/pages/{page_id}/conversations/{conversation_id}/messages?page_access_token={page_access_token}' \
   --header 'Accept: application/json'
 
 Response:
